@@ -1,61 +1,245 @@
-import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
-import COLORS from '../constants/colors';
-import CustomerInput from "../componets/common/CustomeInput";
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  Dimensions,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import CustomInput from "../componets/common/CustomeInput";
 
-const LoginScreen = ({navigation}) =>{
-    return(
-        <ScrollView contentContainerStyle={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.welcomeText}>Welcome Back</Text>
-                <Text style={styles.subText}>Login to your account</Text>
-            </View>
+const { height } = Dimensions.get("window");
 
-            <View style={styles.formCard}>
-                <Text style={styles.label}>Email Address</Text>
-                <CustomerInput iconName="email-outline" placeholder="Enter your email"/>
-                
-                <Text style={styles.label} >Password </Text>
-                <CustomerInput iconName="lock-outline" placeholder="Enter your password" isPassword rightIcons= "eye-outline" />
-                
-                <TouchableOpacity>
-                    <Text style={styles.forgetText}>Forgot Password?</Text>
-                </TouchableOpacity>
+const LoginScreen = ({ navigation }) => {
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
-                <TouchableOpacity style={styles.loginBtn}>
-                    <Text style={styles.loginBtnText}>Login</Text>
-                </TouchableOpacity>
+      {/* Header */}
+      <LinearGradient
+        colors={["#16a34a", "#22c55e"]}
+        style={styles.headerSection}
+      >
+        <Text style={styles.welcomeTitle}>Welcome Back</Text>
+        <Text style={styles.welcomeSub}>Login to your account</Text>
+      </LinearGradient>
 
-                <Text style={styles.orText}>or contine with</Text>
+      {/* Form Card */}
+      <View style={styles.cardContainer}>
+        <View style={styles.whiteCard}>
 
-                <View style= {styles.socialRow}>
-                    <TouchableOpacity style={styles.socialBtn}><Text>Google</Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.socialBtn}><Text>Facebook</Text></TouchableOpacity>
-                </View>
+          <Text style={styles.label}>Email Address</Text>
+          <CustomInput
+            iconName="email-outline"
+            placeholder="Enter your email"
+          />
 
-                <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-                   <Text style={styles.footerText}> Dont have an account?<Text style={styles.signUpLink}>Sign Up</Text></Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
-    );
+          <Text style={styles.label}>Password</Text>
+          <CustomInput
+            iconName="lock-outline"
+            placeholder="Enter your password"
+            isPassword
+            rightIcon="eye-outline"
+          />
+
+          <TouchableOpacity style={styles.forgotContainer}>
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
+
+          {/* Login Button */}
+          <TouchableOpacity style={styles.loginBtn}>
+            <LinearGradient
+              colors={["#16a34a", "#22c55e"]}
+              style={styles.loginGradient}
+            >
+              <Text style={styles.loginBtnText}>Login</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.line} />
+            <Text style={styles.orText}>or continue with</Text>
+            <View style={styles.line} />
+          </View>
+
+          {/* Social Buttons */}
+          <View style={styles.socialRow}>
+            <TouchableOpacity style={styles.socialBtn}>
+              <MaterialCommunityIcons name="google" size={20} color="#DB4437" />
+              <Text style={styles.socialText}>Google</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.socialBtn}>
+              <MaterialCommunityIcons name="facebook" size={20} color="#1877F2" />
+              <Text style={styles.socialText}>Facebook</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Signup */}
+          <TouchableOpacity
+            style={styles.footer}
+            onPress={() => navigation.navigate("Signup")}
+          >
+            <Text style={styles.footerText}>
+              Dont have an account?{" "}
+              <Text style={styles.signUpLink}>Sign Up</Text>
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+      </View>
+    </View>
+  );
 };
 
-const styles =StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: COLORS.primary },
-  header: { padding: 40, alignItems: 'center' },
-  welcomeText: { fontSize: 28, fontWeight: 'bold', color: COLORS.white },
-  subText: { color: COLORS.white, fontSize: 16 },
-  formCard: { flex: 1, backgroundColor: COLORS.white, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25 },
-  label: { fontWeight: 'bold', marginTop: 10 },
-  forgotText: { color: COLORS.primary, textAlign: 'right', marginVertical: 10 },
-  loginBtn: { backgroundColor: COLORS.primary, padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 20 },
-  loginBtnText: { color: COLORS.white, fontWeight: 'bold', fontSize: 18 },
-  orText: { textAlign: 'center', marginVertical: 20, color: COLORS.darkGrey },
-  socialRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  socialBtn: { flex: 0.48, borderWidth: 1, borderColor: COLORS.border, padding: 12, borderRadius: 12, alignItems: 'center' },
-  footerText: { textAlign: 'center', marginTop: 30 },
-  signUpLink: { color: COLORS.primary, fontWeight: 'bold' }
+const styles = StyleSheet.create({
+
+  container: {
+    flex: 1,
+    backgroundColor: "#f0fdf4",
+  },
+
+  headerSection: {
+    height: height * 0.30,
+    justifyContent: "center",
+    alignItems: "center",
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
+    paddingTop: 30,
+  },
+
+  welcomeTitle: {
+    fontSize: 36,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+
+  welcomeSub: {
+    fontSize: 16,
+    color: "#dcfce7",
+    marginTop: 6,
+  },
+
+  cardContainer: {
+    flex: 1,
+    paddingHorizontal: 22,
+    marginTop: -70,
+  },
+
+  whiteCard: {
+    backgroundColor: "#fff",
+    borderRadius: 28,
+    paddingHorizontal: 24,
+    paddingVertical: 30,
+    borderWidth: 1,
+    borderColor: "#dcfce7",
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 25,
+    elevation: 8,
+  },
+
+  label: {
+    fontSize: 14,
+    color: "#374151",
+    marginBottom: 6,
+    marginTop: 12,
+  },
+
+  forgotContainer: {
+    alignItems: "flex-end",
+    marginTop: 8,
+  },
+
+  forgotText: {
+    color: "#16a34a",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  loginBtn: {
+    marginTop: 25,
+  },
+
+  loginGradient: {
+    height: 55,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+
+    shadowColor: "#22c55e",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+
+  loginBtnText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 28,
+  },
+
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#e5e7eb",
+  },
+
+  orText: {
+    marginHorizontal: 12,
+    fontSize: 13,
+    color: "#6b7280",
+  },
+
+  socialRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  socialBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 0.48,
+    height: 50,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    borderRadius: 16,
+  },
+
+  socialText: {
+    marginLeft: 8,
+    fontWeight: "600",
+    color: "#374151",
+  },
+
+  footer: {
+    marginTop: 30,
+    alignItems: "center",
+  },
+
+  footerText: {
+    color: "#6b7280",
+  },
+
+  signUpLink: {
+    color: "#16a34a",
+    fontWeight: "600",
+  },
+
 });
 
 export default LoginScreen;
