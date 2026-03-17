@@ -19,9 +19,9 @@ const { width } = Dimensions.get("window");
 
 // --- Data Constants ---
 const heroDeals = [
-  { id: '1', title: "Fresh Vegetables", sub: "Up to 30% OFF", image: require("../../assets/Images-1/hero.png") },
-  { id: '2', title: "Organic Fruits", sub: "Flash Sale: 40% OFF", image: require("../../assets/Images-1/hero.png") },
-  { id: '3', title: "Dairy Deals", sub: "Flat 20% OFF", image: require("../../assets/Images-1/hero.png") }
+  { id: '1', title: "Fresh Vegetables", sub: "Up to 30% OFF", image: require("../../assets/Images-1/hero1.png") },
+  { id: '2', title: "Organic Fruits", sub: "Flash Sale: 40% OFF", image: require("../../assets/Images-1/hero2.png") },
+  { id: '3', title: "Dairy Deals", sub: "Flat 20% OFF", image: require("../../assets/Images-1/hero3.png") }
 ];
 
 const categories = [
@@ -37,7 +37,8 @@ const flashSaleItems = [
   { id: '3', name: 'Fresh Carrots', price: '$1.50', oldPrice: '$3.00', discount: '50% OFF', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?q=80&w=300&auto=format&fit=crop' },
 ];
 
-export default function HomeScreen() {
+// Added { navigation } prop to handle switching screens
+export default function HomeScreen({ navigation }) {
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const [selectedPill, setSelectedPill] = useState('Flash Sales');
 
@@ -51,7 +52,10 @@ export default function HomeScreen() {
         </View>
         <Text style={styles.heroTitle}>{item.title}</Text>
         <Text style={styles.heroSubText}>Freshly delivered daily.</Text>
-        <TouchableOpacity style={styles.shopBtn}>
+        <TouchableOpacity 
+          style={styles.shopBtn}
+          onPress={() => navigation.navigate('Categories', { selectedCat: item.title })}
+        >
           <Text style={styles.shopText}>Shop Now</Text>
         </TouchableOpacity>
       </View>
@@ -118,15 +122,21 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* CATEGORIES */}
+          {/* CATEGORIES SECTION */}
           <View style={styles.categorySection}>
             <View style={styles.catHeader}>
               <Text style={styles.catTitle}>Categories</Text>
-              <Text style={styles.seeAll}>See all</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Categories')}>
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.grid}>
               {categories.map((item, index) => (
-                <TouchableOpacity key={index} style={styles.cardFrame}>
+                <TouchableOpacity 
+                  key={index} 
+                  style={styles.cardFrame}
+                  onPress={() => navigation.navigate('Categories', { selectedCat: item.name })}
+                >
                   <ImageBackground source={item.image} style={styles.cardImageBack} imageStyle={{ borderRadius: 18 }}>
                     <View style={styles.overlay}><Text style={styles.catName}>{item.name}</Text></View>
                   </ImageBackground>
@@ -139,7 +149,6 @@ export default function HomeScreen() {
           <View style={styles.flashSection}>
             <Text style={[styles.catTitle, {marginBottom: 15}]}>Amazing Products </Text>
             
-            {/* Nav Pill bar: Flash Sales, For You, Popular, New */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 15}}>
               {navPills.map((pill) => (
                 <TouchableOpacity 
@@ -187,7 +196,7 @@ const styles = StyleSheet.create({
   carouselContainer: { marginTop: 20 },
   heroCard: {
     width: width - 40, marginHorizontal: 20, backgroundColor: "#16a34a",
-    borderRadius: 25, padding: 20, flexDirection: "row", alignItems: "center", height: 180,
+    borderRadius: 25, padding: 20, flexDirection: "row", alignItems: "center", height: 190, overflow: 'hidden',
   },
   heroTextContent: { flex: 1 },
   badge: { backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, alignSelf: "flex-start", marginBottom: 5 },
@@ -196,7 +205,7 @@ const styles = StyleSheet.create({
   heroSubText: { color: "#fff", opacity: 0.8, fontSize: 12, marginBottom: 10 },
   shopBtn: { backgroundColor: "#fff", paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, alignSelf: "flex-start" },
   shopText: { color: "#16a34a", fontWeight: "bold", fontSize: 14 },
-  heroImage: { width: 100, height: 100, resizeMode: "contain" },
+  heroImage: { width: 130, height: 130, resizeMode: "contain" },
 
   pagination: { flexDirection: "row", justifyContent: "center", marginTop: 10 },
   dot: { height: 6, borderRadius: 3, marginHorizontal: 3 },
@@ -226,7 +235,6 @@ const styles = StyleSheet.create({
   flashItemCard: { 
     width: 150, marginRight: 15, backgroundColor: '#fff', 
     borderRadius: 20, padding: 10,
-    // Fade Shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
@@ -242,5 +250,4 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   currentPrice: { color: '#16a34a', fontWeight: 'bold', fontSize: 16 },
   oldPrice: { color: '#bbb', textDecorationLine: 'line-through', fontSize: 11, marginLeft: 5 },
-}
-);
+});

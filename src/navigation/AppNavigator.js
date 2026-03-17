@@ -9,7 +9,7 @@ const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [userToken, setUserToken] = useState("logged");
+  const [userToken, setUserToken] = useState(null); // if u don't want login in all time give put "null" in usestate
 
   useEffect(() => {
     setTimeout(() => setIsLoading(false), 2000);
