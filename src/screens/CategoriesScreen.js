@@ -77,81 +77,96 @@ export default function CategoriesScreen({ route, navigation }) {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      
-      <LinearGradient colors={['#16a34a', '#22c55e']} style={styles.header}>
-        <SafeAreaView edges={['top']}>
-          <View style={styles.headerTop}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Icon name="arrow-left" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Categories</Text>
-            <View style={{ width: 40 }} />
-          </View>
+    <View style={{ flex: 1 }}>
+      {/* 1. TOP SAFE AREA (Green) */}
+      <SafeAreaView style={{ backgroundColor: "#16a34a" }} edges={["top"]}>
+        <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
+      </SafeAreaView>
 
-          <View style={styles.searchContainer}>
-            <Icon name="magnify" size={22} color="#9ca3af" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search products..."
-              placeholderTextColor="#9ca3af"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
-
-      <View style={styles.catNavWrapper}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catNavContent}>
-          {categories.map((cat) => {
-            const isActive = selectedCategory === cat.name;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                onPress={() => setSelectedCategory(cat.name)}
-                style={[styles.catPill, isActive && styles.activeCatPill]}
-              >
-                {/* Dynamic Icon Color based on Active State */}
-                <Icon 
-                  name={cat.icon} 
-                  size={20} 
-                  color={isActive ? "#fff" : "#16a34a"} 
-                  style={styles.catIcon} 
-                />
-                <Text style={[styles.catLabel, isActive && styles.activeCatLabel]}>
-                  {cat.name}
-                </Text>
+      <View style={styles.container}>
+        {/* Header with Search */}
+        <LinearGradient colors={['#16a34a', '#22c55e']} style={styles.header}>
+            <View style={styles.headerTop}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Icon name="arrow-left" size={24} color="#fff" />
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+              <Text style={styles.headerTitle}>Categories</Text>
+              <View style={{ width: 40 }} />
+            </View>
+
+            <View style={styles.searchContainer}>
+              <Icon name="magnify" size={22} color="#9ca3af" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search products..."
+                placeholderTextColor="#9ca3af"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+        </LinearGradient>
+
+        {/* Category Horizontal Nav */}
+        <View style={styles.catNavWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catNavContent}>
+            {categories.map((cat) => {
+              const isActive = selectedCategory === cat.name;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  onPress={() => setSelectedCategory(cat.name)}
+                  style={[styles.catPill, isActive && styles.activeCatPill]}
+                >
+                  <Icon 
+                    name={cat.icon} 
+                    size={20} 
+                    color={isActive ? "#fff" : "#16a34a"} 
+                    style={styles.catIcon} 
+                  />
+                  <Text style={[styles.catLabel, isActive && styles.activeCatLabel]}>
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Products Grid */}
+        <FlatList
+          data={filteredProducts}
+          renderItem={renderProduct}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={2}
+          contentContainerStyle={styles.listContent}
+          columnWrapperStyle={styles.columnWrapper}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Icon name="magnify-close" size={80} color="#d1d5db" />
+              <Text style={styles.emptyText}>No products found</Text>
+            </View>
+          }
+        />
+
+        <LiquidBottomNav />
       </View>
 
-      <FlatList
-        data={filteredProducts}
-        renderItem={renderProduct}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={2}
-        contentContainerStyle={styles.listContent}
-        columnWrapperStyle={styles.columnWrapper}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name="magnify-close" size={80} color="#d1d5db" />
-            <Text style={styles.emptyText}>No products found</Text>
-          </View>
-        }
-      />
-
-      <LiquidBottomNav />
+      {/* 2. BOTTOM SAFE AREA (Black) */}
+      <SafeAreaView style={{ backgroundColor: "#000" }} edges={["bottom"]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9fafb" },
-  header: { paddingHorizontal: 20, paddingBottom: 25, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
+  header: { 
+    paddingHorizontal: 20, 
+    paddingTop: 10, // Added padding since we removed SafeAreaView from inside
+    paddingBottom: 25, 
+    borderBottomLeftRadius: 35, 
+    borderBottomRightRadius: 35 
+  },
+  // ... rest of your styles remain exactly the same
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: 20 },
   headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
   backBtn: { backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 12 },

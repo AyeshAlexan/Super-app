@@ -1,35 +1,54 @@
 import React, { useState, useEffect } from "react";
-import { createStackNavigator } from "@react-navigation/stack";
+// Change: Switch to createNativeStackNavigator for native performance
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import LoadingScreen from "../screens/LoadingScreen";
 import AuthNavigator from "./AuthNavigator";
 import BottomTabNavigator from "./BottomTabNavigator";
 
-const Stack = createStackNavigator();
+// Use the Native Stack
+const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userToken, setUserToken] = useState(null); // if u don't want login in all time give put "null" in usestate
 
   useEffect(() => {
-    setTimeout(() => setIsLoading(false), 2000);
+    // Artificial loading delay
+    const timer = setTimeout(() => setIsLoading(false), 2000);
+    return () => clearTimeout(timer); // Clean up timeout
   }, []);
 
   if (isLoading) return <LoadingScreen />;
 
   return (
-   <Stack.Navigator screenOptions={{ headerShown: false }}>
-  {userToken == null ? (
-    <Stack.Screen name="Auth">
-      {(props) => (
-        <AuthNavigator {...props} setUserToken={setUserToken} />
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        // Native optimization settings:
+        animation: 'slide_from_right', // Smooth liquid movement
+        orientation: 'portrait',
+        contentStyle: { backgroundColor: '#f9fafb' } // Prevents white flash between screens
+      }}
+    >
+      {userToken == null ? (
+        <Stack.Screen name="Auth">
+          {(props) => (
+            <AuthNavigator {...props} setUserToken={setUserToken} />
+          )}
+        </Stack.Screen>
+      ) : (
+        <Stack.Screen 
+          name="Main" 
+          component={BottomTabNavigator} 
+          options={{
+             // Prevents the "jumpy" feel when switching from Auth to Main
+             animation: 'fade' 
+          }}
+        />
       )}
-    </Stack.Screen>
-  ) : (
-    <Stack.Screen name="Main" component={BottomTabNavigator} />
-  )}
-</Stack.Navigator>
-);
+    </Stack.Navigator>
+  );
 };
 
 export default AppNavigator;
