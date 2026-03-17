@@ -1,72 +1,107 @@
-import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { Home, Grid, ShoppingCart, User } from 'lucide-react-native';
-import { BlurView } from 'expo-blur'; // Use View if not using Expo
+import React from "react";
+import { View, TouchableOpacity, StyleSheet, Text } from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
-const { width } = Dimensions.get('window');
+export default function LiquidBottomNav() {
+  const navigation = useNavigation();
+  const route = useRoute();
 
-const BottomNav = ({ activeRoute, navigation }) => {
-  const tabs = [
-    { name: 'Home', icon: Home, route: 'Home' },
-    { name: 'Categories', icon: Grid, route: 'Categories' },
-    { name: 'Cart', icon: ShoppingCart, route: 'Cart' },
-    { name: 'Profile', icon: User, route: 'Profile' },
+  const navItems = [
+    { name: "Home", icon: "home-outline", activeIcon: "home" },
+    { name: "Categories", icon: "view-grid-outline", activeIcon: "view-grid" },
+    { name: "Cart", icon: "cart-outline", activeIcon: "cart" },
+    { name: "Profile", icon: "account-outline", activeIcon: "account" },
   ];
 
   return (
-    <View style={styles.container}>
-      {/* Liquid Glass Effect */}
-      <BlurView intensity={80} tint="light" style={styles.glassWrapper}>
-        {tabs.map((tab, index) => {
-          const isActive = activeRoute === tab.route;
-          return (
-            <TouchableOpacity 
-              key={index} 
-              style={[styles.tab, isActive && styles.activeTab]}
-              onPress={() => navigation.navigate(tab.route)}
-            >
-              <tab.icon 
-                size={24} 
-                color={isActive ? '#FFFFFF' : '#6B7280'} 
-                strokeWidth={isActive ? 2.5 : 2}
-              />
-            </TouchableOpacity>
-          );
-        })}
+    <View style={styles.outerContainer}>
+      <BlurView intensity={90} tint="light" style={styles.blurWrapper}>
+        <View style={styles.innerContent}>
+          {navItems.map((item) => {
+            const isActive = route.name === item.name;
+
+            return (
+              <TouchableOpacity
+                key={item.name}
+                style={styles.navItem}
+                onPress={() => navigation.navigate(item.name)} // ✅ NAVIGATION FIX
+              >
+                {isActive ? (
+                  <LinearGradient
+                    colors={["#22c55e", "#16a34a"]}
+                    style={styles.activeButton}
+                  >
+                    <View style={styles.indicatorDot} />
+                    <Icon name={item.activeIcon} size={24} color="#fff" />
+                    <Text style={styles.activeText}>{item.name}</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.inactiveButton}>
+                    <Icon name={item.icon} size={24} color="#6b7280" />
+                    <Text style={styles.text}>{item.name}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </BlurView>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
+  outerContainer: {
+    position: "absolute",
     bottom: 30,
-    width: width,
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    left: 20,
+    right: 20,
+    borderRadius: 35,
+    zIndex: 100,
   },
-  glassWrapper: {
-    flexDirection: 'row',
-    width: '100%',
-    height: 70,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+  blurWrapper: {
+    borderRadius: 35,
+    overflow: "hidden",
   },
-  activeTab: {
-    backgroundColor: '#00C853',
-    padding: 12,
-    borderRadius: 18,
-  }
+  innerContent: {
+    height: 85,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.85)", // ✅ BLACK BOTTOM
+  },
+  navItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  activeButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  inactiveButton: {
+    alignItems: "center",
+  },
+  indicatorDot: {
+    position: "absolute",
+    top: 4,
+    width: 5,
+    height: 5,
+    backgroundColor: "#fff",
+    borderRadius: 2.5,
+  },
+  text: {
+    fontSize: 10,
+    color: "#9ca3af",
+    marginTop: 4,
+  },
+  activeText: {
+    fontSize: 10,
+    color: "#fff",
+    marginTop: 2,
+  },
 });
-
-export default BottomNav;
