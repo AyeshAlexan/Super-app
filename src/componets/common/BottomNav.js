@@ -1,9 +1,16 @@
-import React from "react";
-import { View, TouchableOpacity, StyleSheet, Text, Platform } from "react-native";
+import React, { useEffect } from "react";
+import { View, TouchableOpacity, StyleSheet, Text, Platform, Dimensions } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import Animated, { 
+  useAnimatedStyle, 
+  withSpring, 
+  useSharedValue,
+  FadeIn
+} from "react-native-reanimated";
+
+const { width: windowWidth } = Dimensions.get("window");
 
 export default function LiquidBottomNav() {
   const navigation = useNavigation();
@@ -16,24 +23,42 @@ export default function LiquidBottomNav() {
     { name: "Profile", icon: "account-outline", activeIcon: "account" },
   ];
 
-  const handleNavigation = (targetScreen) => {
-    if (route.name === targetScreen) return;
+  const activeIndex = navItems.findIndex(item => item.name === route.name);
+  
+  // Total horizontal padding is 40. We add a small inner offset for the pill.
+  const containerWidth = windowWidth - 40;
+  const tabWidth = containerWidth / navItems.length;
 
-    // Custom animation logic:
-    // If we are on Categories and going to Home, it should feel like "going back"
-    if (route.name === "Categories" && targetScreen === "Home") {
-      navigation.navigate("Home"); 
-      // Note: If you want a literal slide left, native-stack handles 
-      // this best if Home is the base of your stack.
-    } else {
-      navigation.navigate(targetScreen);
-    }
-  };
+  const translateX = useSharedValue(0);
+
+  useEffect(() => {
+    translateX.value = withSpring(activeIndex * tabWidth, {
+      damping: 18,
+      stiffness: 150,
+      mass: 0.6,
+    });
+  }, [activeIndex, tabWidth]);
+
+  const animatedPillStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   return (
     <View style={styles.outerContainer}>
       <BlurView intensity={80} tint="light" style={styles.blurWrapper}>
         <View style={styles.innerContent}>
+          
+          {/* THE FLUID ACTIVE BUTTON BACKGROUND */}
+          <Animated.View style={[
+            styles.activeButtonContainer, 
+            { width: tabWidth }, 
+            animatedPillStyle
+          ]}>
+            <View style={styles.whiteSquircle}>
+               <View style={styles.indicatorDot} />
+            </View>
+          </Animated.View>
+
           {navItems.map((item) => {
             const isActive = route.name === item.name;
 
@@ -41,24 +66,22 @@ export default function LiquidBottomNav() {
               <TouchableOpacity
                 key={item.name}
                 style={styles.navItem}
-                onPress={() => handleNavigation(item.name)}
-                activeOpacity={0.7}
+                onPress={() => navigation.navigate(item.name)}
+                activeOpacity={1}
               >
-                {isActive ? (
-                  <LinearGradient
-                    colors={["rgba(255, 255, 255, 0.95)", "rgba(255, 255, 255, 0.8)"]}
-                    style={styles.activeButton}
-                  >
-                    <View style={styles.indicatorDot} />
-                    <Icon name={item.activeIcon} size={24} color="#16a34a" />
-                    <Text style={styles.activeText}>{item.name}</Text>
-                  </LinearGradient>
-                ) : (
-                  <View style={styles.inactiveButton}>
-                    <Icon name={item.icon} size={24} color="rgba(50, 50, 50, 0.6)" />
-                    <Text style={styles.text}>{item.name}</Text>
-                  </View>
-                )}
+                <View style={styles.iconWrapper}>
+                  <Icon 
+                    name={isActive ? item.activeIcon : item.icon} 
+                    size={26} 
+                    color={isActive ? "#16a34a" : "rgba(255, 255, 255, 0.9)"} 
+                  />
+                  <Text style={[
+                    styles.navText, 
+                    isActive ? styles.activeText : styles.inactiveText
+                  ]}>
+                    {item.name}
+                  </Text>
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -83,62 +106,68 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 20,
       },
-      android: {
-        elevation: 10,
-      },
+      android: { elevation: 10 },
     }),
   },
   blurWrapper: {
     borderRadius: 35,
     overflow: "hidden",
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.4)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   innerContent: {
-    height: 80,
+    height: 85,
     flexDirection: "row",
-    justifyContent: "space-around",
     alignItems: "center",
-    backgroundColor: "rgba(22, 188, 83, 0.88)", // Matches your glassy green
+    backgroundColor: "#22c55e", // Solid green base for the bar
+    paddingHorizontal: 0,
+  },
+  activeButtonContainer: {
+    position: 'absolute',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  whiteSquircle: {
+    width: 65,
+    height: 65,
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  indicatorDot: {
+    position: 'absolute',
+    top: 8,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#16a34a',
   },
   navItem: {
     flex: 1,
-    alignItems: "center",
-  },
-  activeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 22,
+    height: '100%',
     alignItems: "center",
     justifyContent: "center",
-    // Slight shadow for the white pill to make it pop against green
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  inactiveButton: {
-    alignItems: "center",
+  iconWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
-  indicatorDot: {
-    position: "absolute",
-    top: 2,
-    width: 4,
-    height: 4,
-    backgroundColor: "#16a34a",
-    borderRadius: 2,
-  },
-  text: {
-    fontSize: 10,
-    color: "rgba(40, 40, 40, 0.7)",
+  navText: {
+    fontSize: 11,
     marginTop: 4,
-    fontWeight: "500",
+    fontWeight: '600',
   },
   activeText: {
-    fontSize: 10,
-    color: "#16a34a",
-    marginTop: 2,
-    fontWeight: "bold",
+    color: '#16a34a',
+  },
+  inactiveText: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
 });

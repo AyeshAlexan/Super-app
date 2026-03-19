@@ -32,9 +32,9 @@ const categories = [
 ];
 
 const flashSaleItems = [
-  { id: '1', name: 'Fresh Tomatoes', price: '$2.99', oldPrice: '$4.99', discount: '40% OFF', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?q=80&w=300&auto=format&fit=crop' },
-  { id: '2', name: 'Organic Potatoes', price: '$1.99', oldPrice: '$3.49', discount: '43% OFF', image: 'https://images.unsplash.com/photo-1518977676601-b53f02bad67b?q=80&w=300&auto=format&fit=crop' },
-  { id: '3', name: 'Fresh Carrots', price: '$1.50', oldPrice: '$3.00', discount: '50% OFF', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?q=80&w=300&auto=format&fit=crop' },
+  { id: '1', name: 'Fresh Tomatoes', price: 'Rs.200.00', oldPrice: 'Rs.400.00', discount: '40% OFF', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?q=80&w=300&auto=format&fit=crop' },
+  { id: '2', name: 'Organic Potatoes', price: 'Rs.100.00', oldPrice: 'Rs.300.00', discount: '43% OFF', image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSynSxfuS-ZlslRivEagHusfOyrtGucZQiVYw&s' },
+  { id: '3', name: 'Fresh Carrots', price: 'Rs.100.00', oldPrice: 'Rs.300.00', discount: '50% OFF', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?q=80&w=300&auto=format&fit=crop' },
 ];
 
 // Added { navigation } prop to handle switching screens

@@ -15,10 +15,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from 'expo-linear-gradient';
 import LiquidBottomNav from "../componets/common/BottomNav";
+import { useCart } from "../context/CartContext";
 
 const { width } = Dimensions.get("window");
 
-// Updated Categories with Vector Icons
 const categories = [
   { id: "all", name: "All", icon: "store-outline" },
   { id: "vegetables", name: "Fresh Vegetables", icon: "carrot" },
@@ -28,16 +28,19 @@ const categories = [
 ];
 
 const products = [
-  { id: 1, name: "Fresh Tomatoes", category: "Fresh Vegetables", price: 2.99, unit: "per kg", image: 'https://images.unsplash.com/photo-1443131612988-32b6d97cc5da?q=80&w=400', rating: 4.5, inStock: true },
-  { id: 2, name: "Organic Potatoes", category: "Fresh Vegetables", price: 1.99, unit: "per kg", image: 'https://images.unsplash.com/photo-1659738538929-715b764d59f9?q=80&w=400', rating: 4.8, inStock: true },
-  { id: 4, name: "Fruit Basket", category: "Organic Fruits", price: 12.99, unit: "each", image: 'https://images.unsplash.com/photo-1641573260130-74d81b179809?q=80&w=400', rating: 4.9, inStock: true },
-  { id: 5, name: "Fresh Milk", category: "Dairy & Eggs", price: 3.99, unit: "per liter", image: 'https://images.unsplash.com/photo-1772990977842-55d675ce427e?q=80&w=400', rating: 4.7, inStock: true },
+  { id: 1, name: "Fresh Tomatoes", category: "Fresh Vegetables", price: 100.00, unit: "per kg", image: 'https://images.unsplash.com/photo-1443131612988-32b6d97cc5da?q=80&w=400', rating: 4.5, inStock: true },
+  { id: 2, name: "Organic Potatoes", category: "Fresh Vegetables", price: 200.00, unit: "per kg", image: 'https://images.unsplash.com/photo-1659738538929-715b764d59f9?q=80&w=400', rating: 4.8, inStock: true },
+  { id: 4, name: "Fruit Basket", category: "Organic Fruits", price: 100.00, unit: "each", image: 'https://images.unsplash.com/photo-1641573260130-74d81b179809?q=80&w=400', rating: 4.9, inStock: true },
+  { id: 5, name: "Fresh Milk", category: "Dairy & Eggs", price: 300.00, unit: "per liter", image: 'https://images.unsplash.com/photo-1772990977842-55d675ce427e?q=80&w=400', rating: 4.7, inStock: true },
 ];
 
 export default function CategoriesScreen({ route, navigation }) {
   const initialCategory = route.params?.selectedCat || "All";
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
+  const [addingId, setAddingId] = useState(null); // Tracks which item is being added
+
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (route.params?.selectedCat) {
@@ -45,46 +48,80 @@ export default function CategoriesScreen({ route, navigation }) {
     }
   }, [route.params?.selectedCat]);
 
+  const handleQuickAdd = (item) => {
+    setAddingId(item.id);
+    
+    addToCart({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image,
+      unit: item.unit,
+      quantity: 1,
+    });
+
+    // Reset the icon back to "plus" after 1.5 seconds
+    setTimeout(() => {
+      setAddingId(null);
+    }, 1500);
+  };
+
   const filteredProducts = products.filter((product) => {
     const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const renderProduct = ({ item }) => (
-    <TouchableOpacity style={styles.productCard}>
-      <View>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-        <View style={[styles.stockBadge, { backgroundColor: item.inStock ? '#22c55e' : '#ef4444' }]}>
-          <Text style={styles.stockText}>{item.inStock ? "In Stock" : "Out of Stock"}</Text>
+  const renderProduct = ({ item }) => {
+    const isSuccess = addingId === item.id;
+
+    return (
+      <TouchableOpacity 
+        style={styles.productCard}
+        onPress={() => navigation.navigate("ProductDetails", { product: item })}
+        activeOpacity={0.8}
+      >
+        <View>
+          <Image source={{ uri: item.image }} style={styles.productImage} />
+          <View style={[styles.stockBadge, { backgroundColor: item.inStock ? '#22c55e' : '#ef4444' }]}>
+            <Text style={styles.stockText}>{item.inStock ? "In Stock" : "Out of Stock"}</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.productInfo}>
-        <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productUnit}>{item.unit}</Text>
-        <View style={styles.ratingRow}>
-          <Icon name="star" size={14} color="#facc15" />
-          <Text style={styles.ratingText}>{item.rating}</Text>
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.productUnit}>{item.unit}</Text>
+          <View style={styles.ratingRow}>
+            <Icon name="star" size={14} color="#facc15" />
+            <Text style={styles.ratingText}>{item.rating}</Text>
+          </View>
+          <View style={styles.priceRow}>
+            {/* Cleaned up the price string to prevent rendering errors */}
+            <Text style={styles.priceText}>{`Rs.${item.price.toFixed(0)}`}</Text>
+            
+            <TouchableOpacity 
+              style={[styles.addBtn, isSuccess && styles.addBtnSuccess]} 
+              onPress={() => handleQuickAdd(item)}
+              disabled={isSuccess}
+            >
+              <Icon 
+                name={isSuccess ? "check" : "plus"} 
+                size={20} 
+                color="#fff" 
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.priceRow}>
-          <Text style={styles.priceText}>${item.price}</Text>
-          <TouchableOpacity style={styles.addBtn}>
-            <Icon name="plus" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      {/* 1. TOP SAFE AREA (Green) */}
       <SafeAreaView style={{ backgroundColor: "#16a34a" }} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
       </SafeAreaView>
 
       <View style={styles.container}>
-        {/* Header with Search */}
         <LinearGradient colors={['#16a34a', '#22c55e']} style={styles.header}>
             <View style={styles.headerTop}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -106,7 +143,6 @@ export default function CategoriesScreen({ route, navigation }) {
             </View>
         </LinearGradient>
 
-        {/* Category Horizontal Nav */}
         <View style={styles.catNavWrapper}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catNavContent}>
             {categories.map((cat) => {
@@ -132,7 +168,6 @@ export default function CategoriesScreen({ route, navigation }) {
           </ScrollView>
         </View>
 
-        {/* Products Grid */}
         <FlatList
           data={filteredProducts}
           renderItem={renderProduct}
@@ -151,7 +186,6 @@ export default function CategoriesScreen({ route, navigation }) {
         <LiquidBottomNav />
       </View>
 
-      {/* 2. BOTTOM SAFE AREA (Black) */}
       <SafeAreaView style={{ backgroundColor: "#000" }} edges={["bottom"]} />
     </View>
   );
@@ -161,12 +195,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9fafb" },
   header: { 
     paddingHorizontal: 20, 
-    paddingTop: 10, // Added padding since we removed SafeAreaView from inside
+    paddingTop: 10, 
     paddingBottom: 25, 
     borderBottomLeftRadius: 35, 
     borderBottomRightRadius: 35 
   },
-  // ... rest of your styles remain exactly the same
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: 20 },
   headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
   backBtn: { backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 12 },
@@ -194,6 +227,7 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   priceText: { fontSize: 18, fontWeight: 'bold', color: '#16a34a' },
   addBtn: { backgroundColor: '#16a34a', padding: 6, borderRadius: 10 },
+  addBtnSuccess: { backgroundColor: '#22c55e' }, // Lighter green for checkmark
   emptyContainer: { alignItems: 'center', marginTop: 100 },
   emptyText: { fontSize: 18, color: '#9ca3af', marginTop: 10, fontWeight: '600' }
 });
