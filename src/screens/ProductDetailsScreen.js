@@ -17,6 +17,14 @@ import { useCart } from "../context/CartContext";
 
 const { width, height } = Dimensions.get("window");
 
+// ✅ NEW QUANTITY OPTIONS
+const quantityOptions = [
+  { label: "250g", value: 0.25 },
+  { label: "500g", value: 0.5 },
+  { label: "1kg", value: 1 },
+  { label: "2kg", value: 2 },
+];
+
 export default function ProductDetailsScreen({ route, navigation }) {
   const { product = {
     id: Date.now(),
@@ -29,7 +37,9 @@ export default function ProductDetailsScreen({ route, navigation }) {
   } } = route.params || {};
 
   const { addToCart } = useCart();
-  const [quantity, setQuantity] = useState(1);
+
+  // ✅ REPLACED quantity number WITH selected option
+  const [selectedQty, setSelectedQty] = useState(quantityOptions[2]); // default 1kg
   const [isFavorite, setIsFavorite] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -40,13 +50,15 @@ export default function ProductDetailsScreen({ route, navigation }) {
     if (!product || isAdding) return;
     setIsAdding(true);
 
+    const finalPrice = product.price * selectedQty.value;
+
     addToCart({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: finalPrice,
       image: product.image,
-      unit: product.unit,
-      quantity: quantity,
+      unit: selectedQty.label,
+      quantity: 1,
     });
 
     setShowToast(true);
@@ -101,10 +113,15 @@ export default function ProductDetailsScreen({ route, navigation }) {
                 <Text style={styles.ratingText}>{`${product.rating || "4.5"}`}</Text>
                 <Text style={styles.reviewText}>{"(128 Reviews)"}</Text>
               </View>
+
+              {/* ✅ DYNAMIC PRICE */}
               <View style={styles.priceRow}>
-                <Text style={styles.priceText}>{`Rs.${product.price}`}</Text>
-                <Text style={styles.unitText}>{`/ ${product.unit}`}</Text>
+                <Text style={styles.priceText}>
+                  Rs.{(product.price * selectedQty.value).toFixed(2)}
+                </Text>
+                <Text style={styles.unitText}>{`/ ${selectedQty.label}`}</Text>
               </View>
+
               <Text style={styles.description}>
                 Fresh, high-quality produce picked at peak freshness. Perfect for your healthy daily meals.
               </Text>
@@ -133,26 +150,50 @@ export default function ProductDetailsScreen({ route, navigation }) {
           </View>
         </ScrollView>
 
+        {/* 🔥 UPDATED ACTION BAR */}
         <View style={styles.bottomFloatingContainer}>
           {showToast && (
             <Animated.View style={[styles.toastContainer, { opacity: toastFade }]}>
               <LinearGradient colors={['#16a34a', '#22c55e']} style={styles.toastGradient}>
                 <Icon name="check-circle" size={18} color="#fff" />
-                <Text style={styles.toastText}>Item added to cart!</Text>
+                <Text style={styles.toastText}>
+                  Added {selectedQty.label} to cart!
+                </Text>
               </LinearGradient>
             </Animated.View>
           )}
+
           <View style={styles.actionBar}>
-            <View style={styles.quantityContainer}>
-              <TouchableOpacity onPress={() => setQuantity(Math.max(1, quantity - 1))} style={styles.qtyBtn}>
-                <Icon name="minus" size={20} color="#374151" />
-              </TouchableOpacity>
-              <Text style={styles.qtyText}>{`${quantity}`}</Text>
-              <TouchableOpacity onPress={() => setQuantity(quantity + 1)} style={styles.qtyBtn}>
-                <Icon name="plus" size={20} color="#374151" />
-              </TouchableOpacity>
-            </View>
-            
+
+            {/* ✅ QUANTITY DROPDOWN STYLE */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+              {quantityOptions.map((q) => (
+                <TouchableOpacity
+                  key={q.label}
+                  style={[
+                    styles.qtyBtn,
+                    {
+                      marginHorizontal: 4,
+                      backgroundColor:
+                        selectedQty.label === q.label ? "#16a34a" : "#fff",
+                    },
+                  ]}
+                  onPress={() => setSelectedQty(q)}
+                >
+                  <Text
+                    style={{
+                      color:
+                        selectedQty.label === q.label ? "#fff" : "#374151",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {q.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* ADD BUTTON */}
             <TouchableOpacity 
               style={[styles.addBtn, { opacity: isAdding ? 0.6 : 1 }]} 
               onPress={handleAddToCart}
@@ -160,7 +201,12 @@ export default function ProductDetailsScreen({ route, navigation }) {
             >
               <LinearGradient colors={['#16a34a', '#22c55e']} style={styles.addGradient}>
                 <Icon name={isAdding ? "sync" : "cart-outline"} size={22} color="#fff" />
-                <Text style={styles.addBtnText}>{isAdding ? "Adding..." : `Add • Rs.${(product.price * quantity).toFixed(2)}`}</Text>
+                <Text style={styles.addBtnText}>
+                  {isAdding 
+                    ? "Adding..." 
+                    : `Add • Rs.${(product.price * selectedQty.value).toFixed(2)}`
+                  }
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -171,7 +217,6 @@ export default function ProductDetailsScreen({ route, navigation }) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: "#16a34a" },
   contentContainer: { flex: 1, backgroundColor: "#f9fafb" },

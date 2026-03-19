@@ -19,6 +19,13 @@ import { useCart } from "../context/CartContext";
 
 const { width } = Dimensions.get("window");
 
+const quantityOptions = [
+  { label: "250g", value: 0.25 },
+  { label: "500g", value: 0.5 },
+  { label: "1kg", value: 1 },
+  { label: "2kg", value: 2 },
+];
+
 const categories = [
   { id: "all", name: "All", icon: "store-outline" },
   { id: "vegetables", name: "Fresh Vegetables", icon: "carrot" },
@@ -28,17 +35,18 @@ const categories = [
 ];
 
 const products = [
-  { id: 1, name: "Fresh Tomatoes", category: "Fresh Vegetables", price: 100.00, unit: "per kg", image: 'https://images.unsplash.com/photo-1443131612988-32b6d97cc5da?q=80&w=400', rating: 4.5, inStock: true },
-  { id: 2, name: "Organic Potatoes", category: "Fresh Vegetables", price: 200.00, unit: "per kg", image: 'https://images.unsplash.com/photo-1659738538929-715b764d59f9?q=80&w=400', rating: 4.8, inStock: true },
-  { id: 4, name: "Fruit Basket", category: "Organic Fruits", price: 100.00, unit: "each", image: 'https://images.unsplash.com/photo-1641573260130-74d81b179809?q=80&w=400', rating: 4.9, inStock: true },
-  { id: 5, name: "Fresh Milk", category: "Dairy & Eggs", price: 300.00, unit: "per liter", image: 'https://images.unsplash.com/photo-1772990977842-55d675ce427e?q=80&w=400', rating: 4.7, inStock: true },
+  { id: 1, name: "Fresh Tomatoes", category: "Fresh Vegetables", price: 400.00, image: 'https://images.unsplash.com/photo-1443131612988-32b6d97cc5da?q=80&w=400', rating: 4.5, inStock: true },
+  { id: 2, name: "Organic Potatoes", category: "Fresh Vegetables", price: 300.00, image: 'https://images.unsplash.com/photo-1659738538929-715b764d59f9?q=80&w=400', rating: 4.8, inStock: true },
+  { id: 4, name: "Fruit Basket", category: "Organic Fruits", price: 850.00, image: 'https://images.unsplash.com/photo-1641573260130-74d81b179809?q=80&w=400', rating: 4.9, inStock: true },
+  { id: 5, name: "Fresh Milk", category: "Dairy & Eggs", price: 320.00, image: 'https://images.unsplash.com/photo-1772990977842-55d675ce427e?q=80&w=400', rating: 4.7, inStock: true },
 ];
 
 export default function CategoriesScreen({ route, navigation }) {
   const initialCategory = route.params?.selectedCat || "All";
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
-  const [addingId, setAddingId] = useState(null); // Tracks which item is being added
+  const [selectedQty, setSelectedQty] = useState({}); 
+  const [toast, setToast] = useState("");
 
   const { addToCart } = useCart();
 
@@ -49,21 +57,20 @@ export default function CategoriesScreen({ route, navigation }) {
   }, [route.params?.selectedCat]);
 
   const handleQuickAdd = (item) => {
-    setAddingId(item.id);
-    
+    const qty = selectedQty[item.id] || quantityOptions[2]; 
+    const finalPrice = item.price * qty.value;
+
     addToCart({
       id: item.id,
       name: item.name,
-      price: item.price,
+      price: finalPrice,
       image: item.image,
-      unit: item.unit,
+      unit: qty.label,
       quantity: 1,
     });
 
-    // Reset the icon back to "plus" after 1.5 seconds
-    setTimeout(() => {
-      setAddingId(null);
-    }, 1500);
+    setToast(`Added ${qty.label} of ${item.name} to cart!`);
+    setTimeout(() => setToast(""), 2000);
   };
 
   const filteredProducts = products.filter((product) => {
@@ -73,50 +80,61 @@ export default function CategoriesScreen({ route, navigation }) {
   });
 
   const renderProduct = ({ item }) => {
-    const isSuccess = addingId === item.id;
+    const currentQtySelection = selectedQty[item.id] || quantityOptions[2];
+    const dynamicPrice = item.price * currentQtySelection.value;
 
     return (
-      <TouchableOpacity 
-        style={styles.productCard}
-        onPress={() => navigation.navigate("ProductDetails", { product: item })}
-        activeOpacity={0.8}
-      >
-        <View>
+      <View style={styles.productCard}>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate("ProductDetails", { product: item })}
+          activeOpacity={0.9}
+        >
           <Image source={{ uri: item.image }} style={styles.productImage} />
           <View style={[styles.stockBadge, { backgroundColor: item.inStock ? '#22c55e' : '#ef4444' }]}>
             <Text style={styles.stockText}>{item.inStock ? "In Stock" : "Out of Stock"}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
+
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.productUnit}>{item.unit}</Text>
+          
           <View style={styles.ratingRow}>
             <Icon name="star" size={14} color="#facc15" />
             <Text style={styles.ratingText}>{item.rating}</Text>
           </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.qtyScroll}>
+            {quantityOptions.map((q) => (
+              <TouchableOpacity
+                key={q.label}
+                style={[styles.qtyOption, currentQtySelection.label === q.label && styles.qtyActive]}
+                onPress={() => setSelectedQty(prev => ({ ...prev, [item.id]: q }))}
+              >
+                <Text style={[styles.qtyText, currentQtySelection.label === q.label && styles.qtyTextActive]}>
+                  {q.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
           <View style={styles.priceRow}>
-            {/* Cleaned up the price string to prevent rendering errors */}
-            <Text style={styles.priceText}>{`Rs.${item.price.toFixed(0)}`}</Text>
-            
+            <Text style={styles.priceText}>{`Rs.${dynamicPrice.toFixed(0)}`}</Text>
             <TouchableOpacity 
-              style={[styles.addBtn, isSuccess && styles.addBtnSuccess]} 
+              style={[styles.addBtn, !item.inStock && { backgroundColor: '#d1d5db' }]} 
               onPress={() => handleQuickAdd(item)}
-              disabled={isSuccess}
+              disabled={!item.inStock}
             >
-              <Icon 
-                name={isSuccess ? "check" : "plus"} 
-                size={20} 
-                color="#fff" 
-              />
+              <Icon name="cart-plus" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: "#f9fafb" }}>
+      {/* Top SafeArea - Green to match Header */}
       <SafeAreaView style={{ backgroundColor: "#16a34a" }} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
       </SafeAreaView>
@@ -153,15 +171,8 @@ export default function CategoriesScreen({ route, navigation }) {
                   onPress={() => setSelectedCategory(cat.name)}
                   style={[styles.catPill, isActive && styles.activeCatPill]}
                 >
-                  <Icon 
-                    name={cat.icon} 
-                    size={20} 
-                    color={isActive ? "#fff" : "#16a34a"} 
-                    style={styles.catIcon} 
-                  />
-                  <Text style={[styles.catLabel, isActive && styles.activeCatLabel]}>
-                    {cat.name}
-                  </Text>
+                  <Icon name={cat.icon} size={20} color={isActive ? "#fff" : "#16a34a"} style={styles.catIcon} />
+                  <Text style={[styles.catLabel, isActive && styles.activeCatLabel]}>{cat.name}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -183,16 +194,25 @@ export default function CategoriesScreen({ route, navigation }) {
           }
         />
 
+        {/* Floating Toast Notification - Adjusted Bottom and Z-Index */}
+        {toast !== "" && (
+          <View style={styles.toast}>
+            <Icon name="check-circle" size={18} color="#fff" style={{marginRight: 8}} />
+            <Text style={styles.toastText}>{toast}</Text>
+          </View>
+        )}
+
         <LiquidBottomNav />
       </View>
 
+      {/* Bottom SafeArea - Black */}
       <SafeAreaView style={{ backgroundColor: "#000" }} edges={["bottom"]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb" },
+  container: { flex: 1 },
   header: { 
     paddingHorizontal: 20, 
     paddingTop: 10, 
@@ -213,21 +233,42 @@ const styles = StyleSheet.create({
   catIcon: { marginRight: 6 },
   catLabel: { fontWeight: '600', color: '#4b5563', fontSize: 13 },
   activeCatLabel: { color: '#fff' },
-  listContent: { padding: 15, paddingBottom: 120 },
+  listContent: { padding: 15, paddingBottom: 140 }, // Added more bottom padding for the list
   columnWrapper: { justifyContent: 'space-between' },
-  productCard: { width: (width - 45) / 2, backgroundColor: '#fff', borderRadius: 20, marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  productImage: { width: '100%', height: 130, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  productCard: { width: (width - 45) / 2, backgroundColor: '#fff', borderRadius: 20, marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, overflow: 'hidden' },
+  productImage: { width: '100%', height: 120 },
   stockBadge: { position: 'absolute', top: 10, right: 10, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   stockText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   productInfo: { padding: 12 },
   productName: { fontWeight: 'bold', fontSize: 15, color: '#1f2937' },
-  productUnit: { fontSize: 12, color: '#9ca3af', marginVertical: 2 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
   ratingText: { fontSize: 12, color: '#4b5563', marginLeft: 4, fontWeight: '600' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  priceText: { fontSize: 18, fontWeight: 'bold', color: '#16a34a' },
-  addBtn: { backgroundColor: '#16a34a', padding: 6, borderRadius: 10 },
-  addBtnSuccess: { backgroundColor: '#22c55e' }, // Lighter green for checkmark
+  qtyScroll: { marginVertical: 8 },
+  qtyOption: { paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#f3f4f6', borderRadius: 6, marginRight: 6, borderWidth: 1, borderColor: '#e5e7eb' },
+  qtyActive: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
+  qtyText: { fontSize: 11, color: '#6b7280', fontWeight: '600' },
+  qtyTextActive: { color: '#fff' },
+  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 },
+  priceText: { fontSize: 17, fontWeight: 'bold', color: '#16a34a' },
+  addBtn: { backgroundColor: '#16a34a', padding: 8, borderRadius: 10 },
   emptyContainer: { alignItems: 'center', marginTop: 100 },
-  emptyText: { fontSize: 18, color: '#9ca3af', marginTop: 10, fontWeight: '600' }
+  emptyText: { fontSize: 18, color: '#9ca3af', marginTop: 10, fontWeight: '600' },
+  
+  // Toast Styles - Adjusted for visibility above BottomNav
+  toast: { 
+    position: 'absolute', 
+    bottom: 130, // Pushed up further so it doesn't hide behind the navbar
+    alignSelf: 'center', 
+    backgroundColor: 'rgba(22, 163, 74, 0.95)', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20, 
+    paddingVertical: 12, 
+    borderRadius: 25, 
+    elevation: 100, // Very high elevation for Android
+    zIndex: 9999,   // High zIndex for iOS
+    shadowColor: '#000',
+    shadowOpacity: 0.2
+  },
+  toastText: { color: '#fff', fontWeight: 'bold', fontSize: 14 }
 });

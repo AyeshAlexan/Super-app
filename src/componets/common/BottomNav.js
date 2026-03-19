@@ -7,14 +7,20 @@ import Animated, {
   useAnimatedStyle, 
   withSpring, 
   useSharedValue,
-  FadeIn
 } from "react-native-reanimated";
+
+// 🔥 1. IMPORT CART CONTEXT
+import { useCart } from "../../context/CartContext";
 
 const { width: windowWidth } = Dimensions.get("window");
 
 export default function LiquidBottomNav() {
   const navigation = useNavigation();
   const route = useRoute();
+  
+  // 🔥 2. GET CART COUNT
+  const { cartItems } = useCart();
+  const cartCount = cartItems?.length || 0;
 
   const navItems = [
     { name: "Home", icon: "home-outline", activeIcon: "home" },
@@ -25,13 +31,13 @@ export default function LiquidBottomNav() {
 
   const activeIndex = navItems.findIndex(item => item.name === route.name);
   
-  // Total horizontal padding is 40. We add a small inner offset for the pill.
   const containerWidth = windowWidth - 40;
   const tabWidth = containerWidth / navItems.length;
 
   const translateX = useSharedValue(0);
 
   useEffect(() => {
+    // Smoothly slide the white pill background
     translateX.value = withSpring(activeIndex * tabWidth, {
       damping: 18,
       stiffness: 150,
@@ -55,12 +61,13 @@ export default function LiquidBottomNav() {
             animatedPillStyle
           ]}>
             <View style={styles.whiteSquircle}>
-               <View style={styles.indicatorDot} />
+                <View style={styles.indicatorDot} />
             </View>
           </Animated.View>
 
           {navItems.map((item) => {
             const isActive = route.name === item.name;
+            const isCart = item.name === "Cart";
 
             return (
               <TouchableOpacity
@@ -75,6 +82,16 @@ export default function LiquidBottomNav() {
                     size={26} 
                     color={isActive ? "#16a34a" : "rgba(255, 255, 255, 0.9)"} 
                   />
+
+                  {/* 🔥 3. CART BADGE LOGIC */}
+                  {isCart && cartCount > 0 && (
+                    <View style={styles.badgeContainer}>
+                      <Text style={styles.badgeText}>
+                        {cartCount > 9 ? "9+" : cartCount}
+                      </Text>
+                    </View>
+                  )}
+
                   <Text style={[
                     styles.navText, 
                     isActive ? styles.activeText : styles.inactiveText
@@ -119,7 +136,7 @@ const styles = StyleSheet.create({
     height: 85,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#22c55e", // Solid green base for the bar
+    backgroundColor: "#22c55e", 
     paddingHorizontal: 0,
   },
   activeButtonContainer: {
@@ -169,5 +186,25 @@ const styles = StyleSheet.create({
   },
   inactiveText: {
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  // 🔥 4. BADGE STYLES
+  badgeContainer: {
+    position: 'absolute',
+    right: -6,
+    top: -4,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    paddingHorizontal: 2,
   },
 });
