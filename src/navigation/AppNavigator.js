@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from "react";
-// Change: Switch to createNativeStackNavigator for native performance
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import LoadingScreen from "../screens/LoadingScreen";
 import AuthNavigator from "./AuthNavigator";
 import BottomTabNavigator from "./BottomTabNavigator";
 
-// Use the Native Stack
+// Import your new profile-related screens
+import OrdersScreen from "../screens/ordersScreen";
+import FavoritesScreen from "../screens/favoritesScreen";
+import AddressesScreen from "../screens/addressScreen";
+import PaymentsScreen from "../screens/PaymentmethodScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
+
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [userToken, setUserToken] = useState(null); // if u don't want login in all time give put "null" in usestate
+  // Change to non-null if you want to skip login during development make demo-token to skip login
+  const [userToken, setUserToken] = useState(null); 
 
   useEffect(() => {
-    // Artificial loading delay
     const timer = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timer); // Clean up timeout
+    return () => clearTimeout(timer);
   }, []);
 
   if (isLoading) return <LoadingScreen />;
@@ -25,27 +30,32 @@ const AppNavigator = () => {
     <Stack.Navigator 
       screenOptions={{ 
         headerShown: false,
-        // Native optimization settings:
-        animation: 'slide_from_right', // Smooth liquid movement
+        animation: 'slide_from_right', 
         orientation: 'portrait',
-        contentStyle: { backgroundColor: '#f9fafb' } // Prevents white flash between screens
+        contentStyle: { backgroundColor: '#f9fafb' } 
       }}
     >
       {userToken == null ? (
         <Stack.Screen name="Auth">
-          {(props) => (
-            <AuthNavigator {...props} setUserToken={setUserToken} />
-          )}
+          {(props) => <AuthNavigator {...props} setUserToken={setUserToken} />}
         </Stack.Screen>
       ) : (
-        <Stack.Screen 
-          name="Main" 
-          component={BottomTabNavigator} 
-          options={{
-             // Prevents the "jumpy" feel when switching from Auth to Main
-             animation: 'fade' 
-          }}
-        />
+        <>
+          {/* Main App with Bottom Tabs */}
+          <Stack.Screen 
+            name="Main" 
+            component={BottomTabNavigator} 
+            options={{ animation: 'fade' }}
+          />
+
+          {/* Profile Menu Screens */}
+          {/* Adding these here allows them to overlay the BottomBar */}
+          <Stack.Screen name="Orders" component={OrdersScreen} />
+          <Stack.Screen name="Favorites" component={FavoritesScreen} />
+          <Stack.Screen name="Addresses" component={AddressesScreen} />
+          <Stack.Screen name="Payments" component={PaymentsScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        </>
       )}
     </Stack.Navigator>
   );

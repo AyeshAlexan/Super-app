@@ -9,7 +9,6 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
-// 🔥 1. IMPORT CART CONTEXT
 import { useCart } from "../../context/CartContext";
 
 const { width: windowWidth } = Dimensions.get("window");
@@ -18,7 +17,6 @@ export default function LiquidBottomNav() {
   const navigation = useNavigation();
   const route = useRoute();
   
-  // 🔥 2. GET CART COUNT
   const { cartItems } = useCart();
   const cartCount = cartItems?.length || 0;
 
@@ -29,20 +27,32 @@ export default function LiquidBottomNav() {
     { name: "Profile", icon: "account-outline", activeIcon: "account" },
   ];
 
-  const activeIndex = navItems.findIndex(item => item.name === route.name);
-  
+  // ✅ FIX 1: HANDLE NESTED ROUTES
+  const getActiveRoute = () => {
+    if (route.name === "Main" && route.state) {
+      const nestedRoute = route.state.routes[route.state.index];
+      return nestedRoute.name;
+    }
+    return route.name;
+  };
+
+  const currentRoute = getActiveRoute();
+
+  const activeIndex = navItems.findIndex(item => item.name === currentRoute);
+
   const containerWidth = windowWidth - 40;
   const tabWidth = containerWidth / navItems.length;
 
   const translateX = useSharedValue(0);
 
   useEffect(() => {
-    // Smoothly slide the white pill background
-    translateX.value = withSpring(activeIndex * tabWidth, {
-      damping: 18,
-      stiffness: 150,
-      mass: 0.6,
-    });
+    if (activeIndex !== -1) {
+      translateX.value = withSpring(activeIndex * tabWidth, {
+        damping: 18,
+        stiffness: 150,
+        mass: 0.6,
+      });
+    }
   }, [activeIndex, tabWidth]);
 
   const animatedPillStyle = useAnimatedStyle(() => ({
@@ -54,27 +64,34 @@ export default function LiquidBottomNav() {
       <BlurView intensity={80} tint="light" style={styles.blurWrapper}>
         <View style={styles.innerContent}>
           
-          {/* THE FLUID ACTIVE BUTTON BACKGROUND */}
+          {/* ACTIVE INDICATOR */}
           <Animated.View style={[
             styles.activeButtonContainer, 
             { width: tabWidth }, 
             animatedPillStyle
           ]}>
             <View style={styles.whiteSquircle}>
-                <View style={styles.indicatorDot} />
+              <View style={styles.indicatorDot} />
             </View>
           </Animated.View>
 
           {navItems.map((item) => {
-            const isActive = route.name === item.name;
+            const isActive = currentRoute === item.name;
             const isCart = item.name === "Cart";
 
             return (
               <TouchableOpacity
                 key={item.name}
                 style={styles.navItem}
-                onPress={() => navigation.navigate(item.name)}
-                activeOpacity={1}
+                
+                // ✅ FIX 2: CORRECT NAVIGATION
+                onPress={() =>
+                  navigation.navigate("Main", {
+                    screen: item.name,
+                  })
+                }
+
+                activeOpacity={0.8}
               >
                 <View style={styles.iconWrapper}>
                   <Icon 
@@ -83,7 +100,7 @@ export default function LiquidBottomNav() {
                     color={isActive ? "#16a34a" : "rgba(255, 255, 255, 0.9)"} 
                   />
 
-                  {/* 🔥 3. CART BADGE LOGIC */}
+                  {/* CART BADGE */}
                   {isCart && cartCount > 0 && (
                     <View style={styles.badgeContainer}>
                       <Text style={styles.badgeText}>
@@ -137,7 +154,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#22c55e", 
-    paddingHorizontal: 0,
   },
   activeButtonContainer: {
     position: 'absolute',
@@ -187,7 +203,6 @@ const styles = StyleSheet.create({
   inactiveText: {
     color: 'rgba(255, 255, 255, 0.9)',
   },
-  // 🔥 4. BADGE STYLES
   badgeContainer: {
     position: 'absolute',
     right: -6,
