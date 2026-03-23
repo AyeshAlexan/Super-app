@@ -16,29 +16,16 @@ import BrandIcon from "react-native-vector-icons/FontAwesome";
 import { LinearGradient } from "expo-linear-gradient";
 import LiquidBottomNav from "../componets/common/BottomNav";
 
+// ✅ Import the Context Hook
+import { usePayment } from "../context/PaymentContext";
+
 const { width } = Dimensions.get("window");
 
 export default function PaymentScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-
-  const [paymentMethods, setPaymentMethods] = useState([
-    {
-      id: 1,
-      brand: "visa",
-      cardNumber: "**** **** **** 4532",
-      cardHolder: "JOHN DOE",
-      expiryDate: "12/26",
-      isDefault: true,
-    },
-    {
-      id: 2,
-      brand: "mastercard",
-      cardNumber: "**** **** **** 8765",
-      cardHolder: "JOHN DOE",
-      expiryDate: "08/27",
-      isDefault: false,
-    },
-  ]);
+  
+  // ✅ Connect to Context (Remove local setPaymentMethods state)
+  const { paymentCards, addCard, setDefaultCard, deleteCard } = usePayment();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [showCVV, setShowCVV] = useState(false);
@@ -50,13 +37,8 @@ export default function PaymentScreen({ navigation }) {
   });
 
   // --- Logic Helpers ---
-
   const formatCardNumber = (text) => {
-    return text
-      .replace(/\D/g, "") 
-      .replace(/(.{4})/g, "$1 ") 
-      .trim()
-      .substring(0, 19);
+    return text.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim().substring(0, 19);
   };
 
   const formatExpiry = (text) => {
@@ -75,12 +57,8 @@ export default function PaymentScreen({ navigation }) {
   };
 
   const renderCardIcon = (brand, size = 40) => {
-    if (brand === "visa") {
-      return <BrandIcon name="cc-visa" size={size} color="#fff" />;
-    }
-    if (brand === "mastercard") {
-      return <BrandIcon name="cc-mastercard" size={size} color="#fff" />;
-    }
+    if (brand === "visa") return <BrandIcon name="cc-visa" size={size} color="#fff" />;
+    if (brand === "mastercard") return <BrandIcon name="cc-mastercard" size={size} color="#fff" />;
     return <Icon name="credit-card-outline" size={size} color="#fff" />;
   };
 
@@ -90,25 +68,17 @@ export default function PaymentScreen({ navigation }) {
     const masked = `**** **** **** ${cleanNumber.slice(-4)}`;
     
     const newCard = {
-      id: Date.now(),
       brand: brand,
       cardNumber: masked,
       cardHolder: formData.cardHolder.toUpperCase(),
       expiryDate: formData.expiryDate,
-      isDefault: false,
+      isDefault: true, // Make newly added card the default
     };
 
-    setPaymentMethods([...paymentMethods, newCard]);
+    // ✅ Call context function
+    addCard(newCard);
     setModalVisible(false);
     setFormData({ cardNumber: "", cardHolder: "", expiryDate: "", cvv: "" });
-  };
-
-  const handleDelete = (id) => {
-    setPaymentMethods(prev => prev.filter(card => card.id !== id));
-  };
-
-  const handleSetDefault = (id) => {
-    setPaymentMethods(prev => prev.map(card => ({ ...card, isDefault: card.id === id })));
   };
 
   return (
@@ -117,7 +87,6 @@ export default function PaymentScreen({ navigation }) {
       <View style={{ backgroundColor: "#16a34a", height: insets.top }} />
       <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
 
-      {/* Header */}
       <LinearGradient colors={["#16a34a", "#22c55e"]} style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
@@ -134,14 +103,21 @@ export default function PaymentScreen({ navigation }) {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
         showsVerticalScrollIndicator={false}
       >
-        {paymentMethods.map((card) => (
+        {paymentCards.map((card) => (
           <View key={card.id} style={styles.cardWrapper}>
-            <LinearGradient
-              colors={card.brand === "visa" ? ["#1e40af", "#3b82f6"] : card.brand === "mastercard" ? ["#ea580c", "#f97316"] : ["#4b5563", "#1f2937"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.creditCard}
-            >
+           <LinearGradient
+  // ✅ Check for 'mastercard' (lowercase) to apply the orange gradient
+  colors={
+    card.brand === "visa" 
+      ? ["#1e40af", "#3b82f6"] 
+      : card.brand === "mastercard" 
+        ? ["#ea580c", "#f97316"] // Orange for Mastercard
+        : ["#4b5563", "#1f2937"] // Dark grey for others
+  }
+  start={{ x: 0, y: 0 }}
+  end={{ x: 1, y: 1 }}
+  style={styles.creditCard}
+>
               <View style={styles.cardHeader}>
                 {renderCardIcon(card.brand)}
                 {card.isDefault && (
@@ -167,12 +143,12 @@ export default function PaymentScreen({ navigation }) {
 
             <View style={styles.actionRow}>
               {!card.isDefault && (
-                <TouchableOpacity onPress={() => handleSetDefault(card.id)} style={styles.setDefaultBtn}>
+                <TouchableOpacity onPress={() => setDefaultCard(card.id)} style={styles.setDefaultBtn}>
                   <Icon name="check-circle-outline" size={18} color="#16a34a" />
                   <Text style={styles.setDefaultText}>Set as Default</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => handleDelete(card.id)} style={styles.removeBtn}>
+              <TouchableOpacity onPress={() => deleteCard(card.id)} style={styles.removeBtn}>
                 <Icon name="trash-can-outline" size={18} color="#ef4444" />
                 <Text style={styles.removeText}>Remove</Text>
               </TouchableOpacity>
@@ -181,7 +157,7 @@ export default function PaymentScreen({ navigation }) {
         ))}
       </ScrollView>
 
-      {/* Modal for adding card */}
+      {/* Modal remains the same... */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
@@ -216,7 +192,6 @@ export default function PaymentScreen({ navigation }) {
                 value={formData.expiryDate} 
                 onChangeText={(t) => setFormData({...formData, expiryDate: formatExpiry(t)})} 
               />
-              
               <View style={[styles.inputIconWrapper, { flex: 1 }]}>
                 <TextInput 
                   placeholder="CVV" 
@@ -254,6 +229,7 @@ export default function PaymentScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // ... Styles stay the same as your provided code
   header: { paddingBottom: 30, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
   headerTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginTop: 10 },
   headerTitle: { color: "#fff", fontSize: 22, fontWeight: "bold" },

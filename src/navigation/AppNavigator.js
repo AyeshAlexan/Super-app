@@ -5,18 +5,20 @@ import LoadingScreen from "../screens/LoadingScreen";
 import AuthNavigator from "./AuthNavigator";
 import BottomTabNavigator from "./BottomTabNavigator";
 
-// Import your new profile-related screens
+// Import your existing screens
 import OrdersScreen from "../screens/ordersScreen";
 import FavoritesScreen from "../screens/favoritesScreen";
 import AddressesScreen from "../screens/addressScreen";
 import PaymentsScreen from "../screens/PaymentmethodScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
 
+import CheckoutScreen from "../screens/checkoutscreen"; 
+
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
-  // Change to non-null if you want to skip login during development make demo-token to skip login
+  // Set to "demo-token" to skip login during development or make as null to require login
   const [userToken, setUserToken] = useState(null); 
 
   useEffect(() => {
@@ -48,13 +50,21 @@ const AppNavigator = () => {
             options={{ animation: 'fade' }}
           />
 
-          {/* Profile Menu Screens */}
-          {/* Adding these here allows them to overlay the BottomBar */}
+          {/* Profile & Flow Screens (Overlay BottomBar) */}
           <Stack.Screen name="Orders" component={OrdersScreen} />
           <Stack.Screen name="Favorites" component={FavoritesScreen} />
           <Stack.Screen name="Addresses" component={AddressesScreen} />
           <Stack.Screen name="Payments" component={PaymentsScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+
+          {/* ✅ 2. Add Checkout Screen to the stack */}
+          <Stack.Screen 
+            name="Checkout" 
+            component={CheckoutScreen} 
+            options={{ 
+              animation: 'slide_from_bottom', // Optional: Slide up feel for checkout
+            }} 
+          />
         </>
       )}
     </Stack.Navigator>

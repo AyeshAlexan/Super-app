@@ -32,10 +32,17 @@ export default function CartScreen({ navigation }) {
   const deliveryFee = cartItems.length > 0 ? 50.00 : 0;
   const total = subtotal + deliveryFee;
 
+  // ✅ HANDLER: Navigate to Checkout
+  const handleProceedToCheckout = () => {
+    if (cartItems.length > 0) {
+      navigation.navigate("Checkout");
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: "#F9FAF7" }}>
       
-      {/* SAFE AREA */}
+      {/* SAFE AREA TOP */}
       <View style={{ backgroundColor: "#16a34a", height: insets.top }} />
       <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
 
@@ -147,14 +154,12 @@ export default function CartScreen({ navigation }) {
                 </View>
                 <View style={{flex: 1, marginLeft: 12}}>
                     <Text style={styles.addressLabel}>Delivery Address</Text>
-                    {/* ✅ STEP 3: Dynamic Address Text */}
                     <Text style={styles.addressText} numberOfLines={1}>
                       {defaultAddress
                         ? `${defaultAddress.street}, ${defaultAddress.city}`
                         : "No address selected"}
                     </Text>
                 </View>
-                {/* ✅ STEP 4: Updated Change Button Navigation */}
                 <TouchableOpacity 
                   onPress={() => navigation.navigate("Addresses", { fromCart: true })}
                 >
@@ -187,7 +192,7 @@ export default function CartScreen({ navigation }) {
             {cartItems.length > 0 && (
               <TouchableOpacity 
                 style={styles.checkoutBtn}
-                onPress={() => console.log("Checkout clicked")}
+                onPress={handleProceedToCheckout}
               >
                 <Text style={styles.checkoutBtnText}>
                   Checkout • Rs.{total.toFixed(2)}
@@ -203,6 +208,7 @@ export default function CartScreen({ navigation }) {
         <LiquidBottomNav />
       </View>
 
+      {/* SAFE AREA BOTTOM */}
       <View style={{ backgroundColor: "#000", height: insets.bottom }} />
     </View>
   );
