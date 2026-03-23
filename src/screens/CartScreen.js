@@ -15,12 +15,18 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from 'expo-linear-gradient';
 import LiquidBottomNav from "../componets/common/BottomNav";
 import { useCart } from "../context/CartContext";
+// ✅ STEP 1: Import Address Context
+import { useAddress } from "../context/AddressContext";
 
 const { width } = Dimensions.get("window");
 
 export default function CartScreen({ navigation }) {
   const { cartItems, removeFromCart, updateQuantity } = useCart();
   const insets = useSafeAreaInsets();
+  
+  // ✅ STEP 2: Get Default Address Logic
+  const { getDefaultAddress } = useAddress();
+  const defaultAddress = getDefaultAddress();
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const deliveryFee = cartItems.length > 0 ? 50.00 : 0;
@@ -141,9 +147,17 @@ export default function CartScreen({ navigation }) {
                 </View>
                 <View style={{flex: 1, marginLeft: 12}}>
                     <Text style={styles.addressLabel}>Delivery Address</Text>
-                    <Text style={styles.addressText}>123 Main St, Colombo, Sri Lanka</Text>
+                    {/* ✅ STEP 3: Dynamic Address Text */}
+                    <Text style={styles.addressText} numberOfLines={1}>
+                      {defaultAddress
+                        ? `${defaultAddress.street}, ${defaultAddress.city}`
+                        : "No address selected"}
+                    </Text>
                 </View>
-                <TouchableOpacity>
+                {/* ✅ STEP 4: Updated Change Button Navigation */}
+                <TouchableOpacity 
+                  onPress={() => navigation.navigate("Addresses", { fromCart: true })}
+                >
                   <Text style={styles.changeText}>Change</Text>
                 </TouchableOpacity>
             </View>
@@ -200,11 +214,8 @@ const styles = StyleSheet.create({
   headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
   headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
   backBtn: { backgroundColor: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 12 },
-
   scrollContent: { paddingHorizontal: 20, paddingTop: 15 },
-
   itemsList: { gap: 14 },
-
   cartCard: { 
     flexDirection: 'row', 
     backgroundColor: '#fff', 
@@ -215,15 +226,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08, 
     shadowRadius: 8 
   },
-
   itemImage: { width: 80, height: 80, borderRadius: 15 },
-
   itemDetails: { flex: 1, marginLeft: 12 },
-
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-
   itemName: { fontWeight: 'bold', fontSize: 16, color: '#1f2937' },
-
   unitBadge: {
     alignSelf: "flex-start",
     backgroundColor: "#dcfce7",
@@ -233,78 +239,45 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 6
   },
-
   unitText: {
     fontSize: 12,
     color: "#16a34a",
     fontWeight: "600"
   },
-
   priceRow: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center' 
   },
-
   itemPrice: { fontSize: 18, fontWeight: 'bold', color: '#16a34a' },
-
   quantityControls: { flexDirection: 'row', alignItems: 'center' },
-
   qtyBtn: { backgroundColor: '#f3f4f6', padding: 6, borderRadius: 8 },
-
   qtyBtnActive: { backgroundColor: '#16a34a', padding: 6, borderRadius: 8 },
-
   qtyText: { fontWeight: 'bold', marginHorizontal: 10 },
-
   promoSection: { backgroundColor: '#fff9ef', marginTop: 20, borderRadius: 20, padding: 15, borderWidth: 1, borderColor: '#ffedd5' },
-
   promoHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-
   promoTitle: { fontWeight: 'bold', color: '#374151' },
-
   promoInputRow: { flexDirection: 'row', gap: 10 },
-
   promoInput: { flex: 1, backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 12, height: 45, borderWidth: 1, borderColor: '#e5e7eb' },
-
   applyBtn: { backgroundColor: '#f97316', paddingHorizontal: 20, borderRadius: 10, justifyContent: 'center' },
-
   applyBtnText: { color: '#fff', fontWeight: 'bold' },
-
   addressCard: { backgroundColor: '#fff', marginTop: 15, borderRadius: 15, padding: 15 },
-
   addressRow: { flexDirection: 'row', alignItems: 'center' },
-
   addressIconBox: { backgroundColor: '#f0fdf4', padding: 8, borderRadius: 10 },
-
   addressLabel: { fontWeight: 'bold', fontSize: 14, color: '#1f2937' },
-
   addressText: { fontSize: 12, color: '#6b7280' },
-
   changeText: { color: '#16a34a', fontWeight: 'bold' },
-
   summaryCard: { backgroundColor: '#fff', marginTop: 15, borderRadius: 25, padding: 20 },
-
   summaryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
-
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-
   summaryLabel: { color: '#6b7280' },
-
   summaryValue: { fontWeight: '600' },
-
   divider: { height: 1, backgroundColor: '#f3f4f6', marginVertical: 12 },
-
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-
   totalLabel: { fontSize: 18, fontWeight: 'bold' },
-
   totalValue: { fontSize: 22, fontWeight: 'bold', color: '#16a34a' },
-
   checkoutBtn: { backgroundColor: '#16a34a', paddingVertical: 15, borderRadius: 18, alignItems: 'center' },
-
   checkoutBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-
   emptyContainer: { alignItems: 'center', padding: 40 },
-
   emptyText: { color: '#9ca3af', marginTop: 10, fontSize: 16 }
 });
