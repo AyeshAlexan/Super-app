@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import BrandIcon from "react-native-vector-icons/FontAwesome";
+import LottieView from 'lottie-react-native';
 
 // ✅ Context Hooks
 import { useCart } from "../context/CartContext";
@@ -22,13 +23,14 @@ export default function CheckoutScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   // ✅ Context Data
-  const { cartItems } = useCart();
+  const { cartItems, clearCart } = useCart(); 
   const { addresses, getDefaultAddress } = useAddress();
   const { getDefaultCard } = usePayment();
 
   // ✅ State
   const [deliveryOption, setDeliveryOption] = useState("standard");
-  const [paymentType, setPaymentType] = useState("cash"); // 'cash' or 'card'
+  const [paymentType, setPaymentType] = useState("cash");
+  const [isLoading, setIsLoading] = useState(false); 
   
   // ✅ Dynamic Selection
   const selectedAddress = getDefaultAddress() || addresses[0];
@@ -38,6 +40,18 @@ export default function CheckoutScreen({ navigation }) {
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = deliveryOption === "express" ? 250.0 : 50.0;
   const total = subtotal + deliveryFee;
+
+  // ✅ Place Order Handler
+  const handlePlaceOrder = () => {
+    setIsLoading(true);
+    
+    // Simulate order processing (3 seconds)
+    setTimeout(() => {
+      setIsLoading(false);
+      clearCart(); 
+      navigation.replace("Success", { paymentType }); 
+    }, 3000);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
@@ -52,6 +66,7 @@ export default function CheckoutScreen({ navigation }) {
               <Icon name="arrow-left" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Checkout</Text>
+            {/* ✅ FIXED: Changed <div> to <View> */}
             <View style={{ width: 40 }} />
           </View>
         </LinearGradient>
@@ -68,7 +83,6 @@ export default function CheckoutScreen({ navigation }) {
                 <Text style={styles.editLink}>Change</Text>
               </TouchableOpacity>
             </View>
-
             {selectedAddress ? (
               <View style={styles.selectedInfoRow}>
                 <View style={styles.iconCircle}>
@@ -96,7 +110,6 @@ export default function CheckoutScreen({ navigation }) {
                 <Text style={styles.methodName}>Standard</Text>
                 <Text style={styles.methodPrice}>Rs.50</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[styles.smallMethod, deliveryOption === "express" && styles.activeMethod]}
                 onPress={() => setDeliveryOption("express")}
@@ -108,7 +121,7 @@ export default function CheckoutScreen({ navigation }) {
             </View>
           </View>
 
-          {/* 3. Payment Type (Cash or Card) */}
+          {/* 3. Payment Type */}
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>Payment Type</Text>
             <View style={styles.rowContainer}>
@@ -119,7 +132,6 @@ export default function CheckoutScreen({ navigation }) {
                 <Icon name="cash-marker" size={24} color={paymentType === "cash" ? "#16a34a" : "#6b7280"} />
                 <Text style={styles.methodName}>Cash on Delivery</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[styles.smallMethod, paymentType === "card" && styles.activeMethod]}
                 onPress={() => setPaymentType("card")}
@@ -129,7 +141,6 @@ export default function CheckoutScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ Conditional Card Details - Only shows if 'card' is selected */}
             {paymentType === "card" && (
               <View style={styles.cardDetailsBox}>
                 <View style={styles.sectionHeader}>
@@ -169,7 +180,7 @@ export default function CheckoutScreen({ navigation }) {
             ))}
             <View style={styles.divider} />
             <View style={styles.summaryRow}><Text style={styles.summaryText}>Subtotal</Text><Text style={styles.summaryPrice}>Rs.{subtotal.toFixed(2)}</Text></View>
-            <View style={styles.summaryRow}><Text style={styles.summaryText}>Delivery ({deliveryOption})</Text><Text style={styles.summaryPrice}>Rs.{deliveryFee.toFixed(2)}</Text></View>
+            <View style={styles.summaryRow}><Text style={styles.summaryText}>Delivery</Text><Text style={styles.summaryPrice}>Rs.{deliveryFee.toFixed(2)}</Text></View>
             <View style={[styles.summaryRow, { marginTop: 10 }]}><Text style={styles.totalLabel}>Total</Text><Text style={styles.totalPrice}>Rs.{total.toFixed(2)}</Text></View>
           </View>
         </ScrollView>
@@ -178,7 +189,7 @@ export default function CheckoutScreen({ navigation }) {
         <View style={[styles.footer, { paddingBottom: insets.bottom + 15 }]}>
           <TouchableOpacity 
             style={styles.placeOrderBtn} 
-            onPress={() => console.log("Order Placed via:", paymentType, total)}
+            onPress={handlePlaceOrder}
           >
             <Text style={styles.placeOrderText}>Place Order</Text>
             <View style={styles.priceBadge}>
@@ -189,6 +200,19 @@ export default function CheckoutScreen({ navigation }) {
 
         <View style={{ backgroundColor: "#000", height: insets.bottom }} />
       </View>
+
+      {/* ✅ Lottie Loading Overlay */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <LottieView
+            source={require("../../assets/Images-1/Delivery Truck.json")} 
+            autoPlay
+            loop
+            style={{ width: 280, height: 280 }}
+          />
+          <Text style={styles.loadingText}>Processing Order...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -206,7 +230,7 @@ const styles = StyleSheet.create({
   rowContainer: { flexDirection: 'row', gap: 12 },
   smallMethod: { flex: 1, alignItems: 'center', padding: 15, borderRadius: 18, borderWidth: 1.5, borderColor: "#f3f4f6", backgroundColor: '#fff' },
   activeMethod: { borderColor: "#16a34a", backgroundColor: "#f0fdf4" },
-  methodName: { fontWeight: "bold", fontSize: 13, marginTop: 5, textAlign: 'center' },
+  methodName: { fontWeight: "bold", fontSize: 12, marginTop: 5, textAlign: 'center' },
   methodPrice: { color: "#16a34a", fontSize: 12, fontWeight: 'bold' },
   cardDetailsBox: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#f3f4f6' },
   selectedInfoRow: { flexDirection: "row", alignItems: "center", gap: 15, marginTop: 12 },
@@ -225,4 +249,13 @@ const styles = StyleSheet.create({
   placeOrderText: { color: "#fff", fontWeight: "bold", fontSize: 18 },
   priceBadge: { marginLeft: 12, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   badgeText: { color: "#fff", fontWeight: "bold" },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2000,
+  },
+  loadingText: { marginTop: 10, fontSize: 16, fontWeight: 'bold', color: '#16a34a' }
 });

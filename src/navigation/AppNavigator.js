@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import LoadingScreen from "../screens/LoadingScreen";
+import SuccessScreen from "../screens/SuccessScreen";
 import AuthNavigator from "./AuthNavigator";
 import BottomTabNavigator from "./BottomTabNavigator";
 
@@ -19,7 +20,7 @@ const Stack = createNativeStackNavigator();
 const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
   // Set to "demo-token" to skip login during development or make as null to require login
-  const [userToken, setUserToken] = useState(null); 
+  const [userToken, setUserToken] = useState("demo-token"); 
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 2000);
@@ -65,7 +66,17 @@ const AppNavigator = () => {
               animation: 'slide_from_bottom', // Optional: Slide up feel for checkout
             }} 
           />
+          {/* ✅ Registering Success Screen */}
+          <Stack.Screen 
+            name="Success" 
+            component={SuccessScreen} 
+            options={{ 
+              animation: 'fade',
+              gestureEnabled: false // Prevent swiping back to checkout
+            }} 
+          />
         </>
+
       )}
     </Stack.Navigator>
   );
