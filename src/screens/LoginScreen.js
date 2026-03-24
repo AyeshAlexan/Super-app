@@ -6,160 +6,288 @@ import {
   TouchableOpacity,
   StatusBar,
   Dimensions,
-  Alert,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
 import CustomInput from "../componets/common/CustomeInput";
 
+// ✅ IMPORT API SERVICE
+import { loginUser } from "../services/authService";
+
 const { height, width } = Dimensions.get("window");
 
 const LoginScreen = ({ navigation, setUserToken }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false); // Controls the animation overlay
+  
+  const [modalConfig, setModalConfig] = useState({
+    visible: false,
+    type: "success", 
+    title: "",
+    message: "",
+  });
+
+  const [showAnimationOverlay, setShowAnimationOverlay] = useState(false);
   const lottieRef = useRef(null);
 
-  const handleLogin = () => {
+  const showStatus = (type, title, message) => {
+    // ✅ Keep the Log: This ensures you see the status in your terminal/debugger
+    if (type === "error") {
+      console.error(`[LOGIN ERROR]: ${title} - ${message}`);
+    } else {
+      console.log(`[LOGIN SUCCESS]: ${message}`);
+    }
+
+    setModalConfig({ visible: true, type, title, message });
+    
+    if (type === "error") {
+      setTimeout(() => {
+        setModalConfig(prev => ({ ...prev, visible: false }));
+      }, 2500);
+    }
+  };
+
+  const handleLogin = async () => {
+    console.log("--- Login Attempt Started ---"); // Log start of process
+
     if (email.trim() === "" || password.trim() === "") {
-      Alert.alert("Missing Fields", "Please enter email and password");
+      showStatus("error", "Missing Fields", "Please enter both email and password.");
       return;
     }
 
-    // 1. Show the full-screen green animation
-    setShowSuccess(true);
+    try {
+      const res = await loginUser({ email, password });
+      
+      // ✅ Log the raw response data for debugging
+      console.log("API Response Data:", res.data);
 
-    // 2. Slow down the transition to the main app
-    // Increased delay from 2000ms to 3500ms (3.5 seconds)
-    setTimeout(() => {
-      if (setUserToken) {
-        setUserToken("logged"); // This triggers AppNavigator to switch to "Main"
-      }
-    }, 3000); 
+      const token = res.data.token;
+      showStatus("success", "Login Successful!", "Welcome back to Greenova.");
+
+      setTimeout(() => {
+        setShowAnimationOverlay(true);
+        setTimeout(() => setModalConfig(prev => ({ ...prev, visible: false })), 100);
+
+        setTimeout(() => {
+          if (setUserToken) setUserToken(token);
+        }, 2500);
+      }, 2000);
+      
+    } catch (error) {
+      // ✅ Log the full error object to the console
+      const errorMsg = error.response?.data?.message || "Invalid email or password";
+      console.error("Full Login Error Context:", error.response?.data || error.message);
+      
+      showStatus("error", "Login Failed", errorMsg);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <View style={{ height: StatusBar.currentHeight || 40, backgroundColor: "#16a34a" }} />
+      <StatusBar barStyle="light-content" backgroundColor="#16a34a" translucent />
 
-      {/* ✅ Updated Animation Overlay: Match green, no text, bigger size */}
-      {showSuccess && (
-        <View style={styles.animationOverlay}>
-          <LottieView
-            ref={lottieRef}
-            source={require("../../assets/Images-1/Loading screen.json")} // Your Lottie JSON file
-            autoPlay
-            loop={false}
-            // Increased animation size to 95% of the screen width
-            style={{ width: width * 0.95, height: width * 0.95 }}
-          />
-          {/* ✅ Removed Text Component */}
-        </View>
-      )}
-
-      {/* Header */}
-      <LinearGradient colors={["#16a34a", "#22c55e"]} style={styles.headerSection}>
-        <Text style={styles.welcomeTitle}>Welcome Back</Text>
-        <Text style={styles.welcomeSub}>Login to your account</Text>
-      </LinearGradient>
-
-      {/* Form Card */}
-      <View style={styles.cardContainer}>
-        <View style={styles.whiteCard}>
-          <Text style={styles.label}>Email Address</Text>
-          <CustomInput
-            iconName="email-outline"
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
-          />
-
-          <Text style={styles.label}>Password</Text>
-          <CustomInput
-            iconName="lock-outline"
-            placeholder="Enter your password"
-            isPassword
-            rightIcon="eye-outline"
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          <TouchableOpacity style={styles.forgotContainer}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-            <LinearGradient colors={["#16a34a", "#22c55e"]} style={styles.loginGradient}>
-              <Text style={styles.loginBtnText}>Login</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.dividerRow}>
-            <View style={styles.line} />
-            <Text style={styles.orText}>or continue with</Text>
-            <View style={styles.line} />
+      <View style={styles.mainContent}>
+        <LinearGradient colors={["#16a34a", "#22c55e"]} style={styles.headerSection}>
+          <View style={styles.headerInner}>
+            <Text style={styles.welcomeTitle}>Welcome Back</Text>
+            <Text style={styles.welcomeSub}>Login to your account</Text>
           </View>
+        </LinearGradient>
 
-          <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialBtn}>
-              <MaterialCommunityIcons name="google" size={20} color="#DB4437" />
-              <Text style={styles.socialText}>Google</Text>
+        <View style={styles.cardContainer}>
+          <View style={styles.whiteCard}>
+            <Text style={styles.label}>Email Address</Text>
+            <CustomInput
+              iconName="email-outline"
+              placeholder="Enter your email"
+              value={email}
+              onChangeText={setEmail}
+            />
+
+            <Text style={styles.label}>Password</Text>
+            <CustomInput
+              iconName="lock-outline"
+              placeholder="Enter your password"
+              isPassword
+              rightIcon="eye-outline"
+              value={password}
+              onChangeText={setPassword}
+            />
+
+            <TouchableOpacity style={styles.forgotContainer}>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.socialBtn}>
-              <MaterialCommunityIcons name="facebook" size={20} color="#1877F2" />
-              <Text style={styles.socialText}>Facebook</Text>
+            <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
+              <LinearGradient colors={["#16a34a", "#22c55e"]} style={styles.loginGradient}>
+                <Text style={styles.loginBtnText}>Login</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.dividerRow}>
+              <View style={styles.line} />
+              <Text style={styles.orText}>or continue with</Text>
+              <View style={styles.line} />
+            </View>
+
+            <View style={styles.socialRow}>
+              <TouchableOpacity style={styles.socialBtn}>
+                <MaterialCommunityIcons name="google" size={20} color="#DB4437" />
+                <Text style={styles.socialText}>Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.socialBtn}>
+                <MaterialCommunityIcons name="facebook" size={20} color="#1877F2" />
+                <Text style={styles.socialText}>Facebook</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.footer}
+              onPress={() => navigation.navigate("Signup")}
+            >
+              <Text style={styles.footerText}>
+                Dont have an account?{" "}
+                <Text style={styles.signUpLink}>Sign Up</Text>
+              </Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.footer}
-            onPress={() => navigation.navigate("Signup")}
-          >
-            <Text style={styles.footerText}>
-              Dont have an account? <Text style={styles.signUpLink}>Sign Up</Text>
-            </Text>
-          </TouchableOpacity>
         </View>
+
+        {/* Dynamic Status Modal */}
+        <Modal visible={modalConfig.visible} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View 
+                style={[
+                  styles.statusCircle, 
+                  { backgroundColor: modalConfig.type === "success" ? "#16a34a" : "#ef4444" }
+                ]}
+              >
+                <MaterialCommunityIcons 
+                  name={modalConfig.type === "success" ? "check" : "alert-circle-outline"} 
+                  size={50} 
+                  color="#fff" 
+                />
+              </View>
+              <Text style={styles.modalTitle}>{modalConfig.title}</Text>
+              <Text style={styles.modalSub}>{modalConfig.message}</Text>
+            </View>
+          </View>
+        </Modal>
+
+        {showAnimationOverlay && (
+          <View style={styles.animationOverlay}>
+            <LottieView
+              ref={lottieRef}
+              source={require("../../assets/Images-1/Loading screen.json")}
+              autoPlay
+              loop={false}
+              style={{ width: width * 0.95, height: width * 0.95 }}
+            />
+          </View>
+        )}
       </View>
+
+      <View style={{ height: 20, backgroundColor: "#000000" }} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // ... Keep your existing styles unchanged ...
-  container: { flex: 1, backgroundColor: "#f0fdf4" },
-  headerSection: { height: height * 0.3, justifyContent: "center", alignItems: "center", borderBottomLeftRadius: 50, borderBottomRightRadius: 50, paddingTop: 30 },
+  container: { flex: 1, backgroundColor: "#000000" },
+  mainContent: { flex: 1, backgroundColor: "#f0fdf4" },
+  headerSection: {
+    height: height * 0.25,
+    width: "100%",
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerInner: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   welcomeTitle: { fontSize: 36, fontWeight: "bold", color: "#fff" },
   welcomeSub: { fontSize: 16, color: "#dcfce7", marginTop: 6 },
-  cardContainer: { flex: 1, paddingHorizontal: 22, marginTop: -70 },
-  whiteCard: { backgroundColor: "#fff", borderRadius: 28, paddingHorizontal: 24, paddingVertical: 30, borderWidth: 1, borderColor: "#dcfce7", shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.12, shadowRadius: 25, elevation: 8 },
+  cardContainer: { flex: 1, paddingHorizontal: 22, marginTop: -20 },
+  whiteCard: {
+    backgroundColor: "#fff",
+    borderRadius: 28,
+    paddingHorizontal: 24,
+    paddingVertical: 30,
+    borderWidth: 1,
+    borderColor: "#dcfce7",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    elevation: 8,
+  },
   label: { fontSize: 14, color: "#374151", marginBottom: 6, marginTop: 12 },
   forgotContainer: { alignItems: "flex-end", marginTop: 8 },
   forgotText: { color: "#16a34a", fontSize: 13, fontWeight: "500" },
   loginBtn: { marginTop: 25 },
-  loginGradient: { height: 55, borderRadius: 16, justifyContent: "center", alignItems: "center", shadowColor: "#22c55e", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6 },
-  loginBtnText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  dividerRow: { flexDirection: "row", alignItems: "center", marginVertical: 28 },
-  line: { flex: 1, height: 1, backgroundColor: "#e5e7eb" },
-  orText: { marginHorizontal: 12, fontSize: 13, color: "#6b7280" },
-  socialRow: { flexDirection: "row", justifyContent: "space-between" },
-  socialBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", flex: 0.48, height: 50, borderWidth: 2, borderColor: "#e5e7eb", borderRadius: 16 },
-  socialText: { marginLeft: 8, fontWeight: "600", color: "#374151" },
-  footer: { marginTop: 30, alignItems: "center" },
-  footerText: { color: "#6b7280" },
-  signUpLink: { color: "#16a34a", fontWeight: "600" },
-
-  // ✅ New & Updated Animation Overlay Style
-  animationOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#16a34a", // ✅ Matched your main green color
-    zIndex: 1000,
+  loginGradient: {
+    height: 55,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },
-
+  loginBtnText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  dividerRow: { flexDirection: "row", alignItems: "center", marginVertical: 20 },
+  line: { flex: 1, height: 1, backgroundColor: "#e5e7eb" },
+  orText: { marginHorizontal: 12, fontSize: 13, color: "#6b7280" },
+  socialRow: { flexDirection: "row", justifyContent: "space-between" },
+  socialBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 0.48,
+    height: 50,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    borderRadius: 16,
+  },
+  socialText: { marginLeft: 8, fontWeight: "600", color: "#374151" },
+  footer: { marginTop: 25, alignItems: "center" },
+  footerText: { color: "#6b7280" },
+  signUpLink: { color: "#16a34a", fontWeight: "600" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCard: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 30,
+    padding: 30,
+    alignItems: "center",
+  },
+  statusCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: { fontSize: 22, fontWeight: "bold", color: "#111827" },
+  modalSub: { fontSize: 15, color: "#6b7280", marginTop: 8, textAlign: "center" },
+  animationOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#16a34a",
+    zIndex: 2000,
+    justifyContent: "center",
+    alignItems: "center",
+    margin: -1,
+  },
 });
 
 export default LoginScreen;
