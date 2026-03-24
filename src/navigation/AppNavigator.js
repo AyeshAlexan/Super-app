@@ -20,7 +20,7 @@ const Stack = createNativeStackNavigator();
 const AppNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
   // Set to "demo-token" to skip login during development or make as null to require login
-  const [userToken, setUserToken] = useState("demo-token"); 
+  const [userToken, setUserToken] = useState(null); 
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 2000);

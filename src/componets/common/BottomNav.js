@@ -13,6 +13,7 @@ import { useCart } from "../../context/CartContext";
 
 const { width: windowWidth } = Dimensions.get("window");
 
+
 export default function LiquidBottomNav() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -27,25 +28,34 @@ export default function LiquidBottomNav() {
     { name: "Profile", icon: "account-outline", activeIcon: "account" },
   ];
 
-  // ✅ FIX 1: HANDLE NESTED ROUTES
-  const getActiveRoute = () => {
-    if (route.name === "Main" && route.state) {
-      const nestedRoute = route.state.routes[route.state.index];
-      return nestedRoute.name;
+  // ✅ FIX: Define which screens belong to which tab
+  const getMappedRoute = () => {
+    let name = route.name;
+
+    // If we are in the nested Main navigator, get that screen name
+    if (name === "Main" && route.state) {
+      name = route.state.routes[route.state.index].name;
     }
-    return route.name;
+
+    // List of screens that should highlight the "Profile" tab
+    const profileScreens = ["Orders", "Favorites", "Addresses", "Payments", "Notifications"];
+    
+    if (profileScreens.includes(name)) {
+      return "Profile";
+    }
+
+    return name;
   };
 
-  const currentRoute = getActiveRoute();
-
-  const activeIndex = navItems.findIndex(item => item.name === currentRoute);
+  const currentActiveTab = getMappedRoute();
+  const activeIndex = navItems.findIndex(item => item.name === currentActiveTab);
 
   const containerWidth = windowWidth - 40;
   const tabWidth = containerWidth / navItems.length;
-
   const translateX = useSharedValue(0);
 
   useEffect(() => {
+    // We check >= 0 because we want it to stay put even if a screen isn't mapped
     if (activeIndex !== -1) {
       translateX.value = withSpring(activeIndex * tabWidth, {
         damping: 18,
@@ -64,7 +74,6 @@ export default function LiquidBottomNav() {
       <BlurView intensity={80} tint="light" style={styles.blurWrapper}>
         <View style={styles.innerContent}>
           
-          {/* ACTIVE INDICATOR */}
           <Animated.View style={[
             styles.activeButtonContainer, 
             { width: tabWidth }, 
@@ -76,21 +85,19 @@ export default function LiquidBottomNav() {
           </Animated.View>
 
           {navItems.map((item) => {
-            const isActive = currentRoute === item.name;
+            // ✅ Use the mapped tab to determine if it's active
+            const isActive = currentActiveTab === item.name;
             const isCart = item.name === "Cart";
 
             return (
               <TouchableOpacity
                 key={item.name}
                 style={styles.navItem}
-                
-                // ✅ FIX 2: CORRECT NAVIGATION
                 onPress={() =>
                   navigation.navigate("Main", {
                     screen: item.name,
                   })
                 }
-
                 activeOpacity={0.8}
               >
                 <View style={styles.iconWrapper}>
@@ -100,7 +107,6 @@ export default function LiquidBottomNav() {
                     color={isActive ? "#16a34a" : "rgba(255, 255, 255, 0.9)"} 
                   />
 
-                  {/* CART BADGE */}
                   {isCart && cartCount > 0 && (
                     <View style={styles.badgeContainer}>
                       <Text style={styles.badgeText}>
@@ -124,7 +130,7 @@ export default function LiquidBottomNav() {
     </View>
   );
 }
-
+// ... (keep your styles as they are)
 const styles = StyleSheet.create({
   outerContainer: {
     position: "absolute",
