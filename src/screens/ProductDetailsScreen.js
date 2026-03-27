@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,29 +17,54 @@ import { useCart } from "../context/CartContext";
 
 const { width, height } = Dimensions.get("window");
 
-const quantityOptions = [
-  { label: "250g", value: 0.25 },
-  { label: "500g", value: 0.5 },
-  { label: "1kg", value: 1 },
-  { label: "2kg", value: 2 },
-];
+const getQuantityOptions = (unit) => {
+  if (!unit) return [];
+  const u = unit.toUpperCase();
+  if (u === "KG" || u === "G") {
+    return [
+      { label: "250g", value: 0.25 },
+      { label: "500g", value: 0.5 },
+      { label: "1kg", value: 1 },
+      { label: "2kg", value: 2 },
+    ];
+  }
+  if (u === "UNIT" || u === "PACKET" || u === "BUNCH") {
+    return [
+      { label: "1", value: 1 },
+      { label: "2", value: 2 },
+      { label: "3", value: 3 },
+      { label: "5", value: 5 },
+      { label: "10", value: 10 },
+    ];
+  }
+  return [{ label: "1", value: 1 }, { label: "2", value: 2 }];
+};
 
 export default function ProductDetailsScreen({ route, navigation }) {
   const { product } = route.params || {};
   const { addToCart } = useCart();
-  const [selectedQty, setSelectedQty] = useState(quantityOptions[2]); 
+
+  const [quantityOptions, setQuantityOptions] = useState(getQuantityOptions(product?.unit));
+  const [selectedQty, setSelectedQty] = useState(quantityOptions[0]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showToast, setShowToast] = useState(false);
-  
+
   const toastFade = useRef(new Animated.Value(0)).current;
 
-  // Dynamic Discount logic using discount_percent column
+  useEffect(() => {
+    if (product?.unit) {
+      const options = getQuantityOptions(product.unit);
+      setQuantityOptions(options);
+      setSelectedQty(options[0]);
+    }
+  }, [product]);
+
   const discountPercent = product.discount_percent || 0;
   const hasDeal = discountPercent > 0;
-  
-  const originalPrice = product.price * selectedQty.value;
-  const finalPrice = hasDeal 
-    ? originalPrice * (1 - discountPercent / 100) 
+
+  const originalPrice = (product.price || 0) * (selectedQty?.value || 1);
+  const finalPrice = hasDeal
+    ? originalPrice * (1 - discountPercent / 100)
     : originalPrice;
 
   const handleAddToCart = () => {
@@ -49,7 +74,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
       name: product.name,
       price: finalPrice,
       image: product.image,
-      unit: selectedQty.label,
+      unit: `${selectedQty.label} ${product.unit}`,
       quantity: 1,
     });
 
@@ -63,7 +88,6 @@ export default function ProductDetailsScreen({ route, navigation }) {
 
   return (
     <View style={styles.mainContainer}>
-      {/* 5. Top Safe Area Green */}
       <SafeAreaView style={{ backgroundColor: "#16a34a" }} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
       </SafeAreaView>
@@ -73,6 +97,7 @@ export default function ProductDetailsScreen({ route, navigation }) {
           <View style={styles.imageContainer}>
             <Image source={{ uri: product.image }} style={styles.mainImage} />
             <LinearGradient colors={['transparent', 'rgba(0,0,0,0.4)']} style={styles.imageGradient} />
+
             <View style={styles.headerButtons}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.roundBtn}>
                 <Icon name="arrow-left" size={24} color="#374151" />
@@ -86,13 +111,13 @@ export default function ProductDetailsScreen({ route, navigation }) {
           <View style={styles.detailsWrapper}>
             <View style={styles.infoCard}>
               <View style={styles.categoryBadge}>
-                {/* 1. Dynamic Category Name */}
                 <Text style={styles.categoryText}>
                   {product.category?.name || "Fresh Produce"}
                 </Text>
               </View>
+
               <Text style={styles.productName}>{product.name}</Text>
-              
+
               <View style={styles.reviewRow}>
                 <Icon name="star" size={18} color="#facc15" />
                 <Text style={styles.ratingText}>{product.rating || "4.5"}</Text>
@@ -100,11 +125,10 @@ export default function ProductDetailsScreen({ route, navigation }) {
               </View>
 
               <View style={styles.priceRow}>
-                {/* 2. Remove decimals if price is whole number */}
                 <Text style={styles.priceText}>
-                   Rs.{finalPrice % 1 === 0 ? finalPrice.toFixed(0) : finalPrice.toFixed(2)}
+                  Rs.{finalPrice % 1 === 0 ? finalPrice.toFixed(0) : finalPrice.toFixed(2)}
                 </Text>
-                <Text style={styles.unitText}>{`/ ${selectedQty.label}`}</Text>
+                <Text style={styles.unitText}>{`/ ${selectedQty?.label}`}</Text>
                 {hasDeal && (
                   <Text style={styles.oldPrice}>Rs.{originalPrice.toFixed(0)}</Text>
                 )}
@@ -113,52 +137,50 @@ export default function ProductDetailsScreen({ route, navigation }) {
               <Text style={styles.description}>{product.description}</Text>
             </View>
 
+            {/* ✅ UPDATED: Product Details Grid */}
             <View style={styles.sectionCard}>
               <Text style={styles.sectionTitle}>Product Details</Text>
               <View style={styles.grid}>
                 <View style={styles.gridBox}>
-                   <Text style={styles.gridLabel}>Available Stock</Text>
-                   {/* FIX: Parse integer to remove .000 and use unit from database */}
-                   <Text style={styles.gridValue}>
-                     {product.stock_quantity ? parseInt(product.stock_quantity) : 0} {product.unit || 'units'}
-                   </Text>
+                  <Text style={styles.gridLabel}>Available Stock</Text>
+                  <Text style={styles.gridValue}>
+                    {product.stock_quantity ? parseInt(product.stock_quantity) : 0} {product.unit || 'units'}
+                  </Text>
                 </View>
+
                 <View style={styles.gridBox}>
-                   <Text style={styles.gridLabel}>Origin</Text>
-                   <Text style={styles.gridValue}>{product.origin || "Local Farm"}</Text>
+                  <Text style={styles.gridLabel}>Origin</Text>
+                  <Text style={styles.gridValue}>{product.origin || "Local Farm"}</Text>
                 </View>
-                
-                {/* 3. Conditional Label: Only show if deal exists */}
-                {hasDeal && (
-                  <View style={styles.gridBox}>
-                    <Text style={styles.gridLabel}>Label</Text>
-                    <Text style={styles.gridValue}>Weekly Deal</Text>
-                  </View>
-                )}
-                
+
                 <View style={styles.gridBox}>
-                   <Text style={styles.gridLabel}>Stock Status</Text>
-                   <Text style={[styles.gridValue, {color: product.stock_quantity > 0 ? '#16a34a' : '#ef4444'}]}>
-                     {product.stock_quantity > 0 ? 'In Stock' : 'Out of Stock'}
-                   </Text>
+                  <Text style={styles.gridLabel}>Label</Text>
+                  <Text style={styles.gridValue}>Weekly Deal</Text>
+                </View>
+
+                <View style={styles.gridBox}>
+                  <Text style={styles.gridLabel}>Stock Status</Text>
+                  <Text style={[styles.gridValue, { color: product.stock_quantity > 0 ? '#16a34a' : '#ef4444' }]}>
+                    {product.stock_quantity > 0 ? 'In Stock' : 'Out of Stock'}
+                  </Text>
                 </View>
               </View>
             </View>
 
-            {/* 4. Dynamic Deal Section */}
+            {/* ✅ NEW: Deals for You Card */}
             {hasDeal && (
-              <LinearGradient colors={['#fffdf2', '#fffbeb']} style={[styles.sectionCard, {borderColor: '#fef3c7', borderWidth: 1}]}>
-                <Text style={styles.sectionTitle}>Deals for You</Text>
-                <View style={styles.dealRow}>
-                  <View style={[styles.dealIcon, {backgroundColor: '#f59e0b'}]}>
-                    <Icon name="party-popper" size={22} color="#fff" />
+              <View style={styles.dealsCard}>
+                <Text style={styles.dealsTitle}>Deals for You</Text>
+                <View style={styles.dealContent}>
+                  <View style={styles.dealIconContainer}>
+                     <Icon name="party-popper" size={24} color="#fff" />
                   </View>
                   <View>
-                    <Text style={styles.dealTitle}>{discountPercent}% OFF</Text>
-                    <Text style={styles.dealSub}>Limited time offer</Text>
+                    <Text style={styles.dealPercentText}>{discountPercent}% OFF</Text>
+                    <Text style={styles.dealSubText}>Limited time offer</Text>
                   </View>
                 </View>
-              </LinearGradient>
+              </View>
             )}
           </View>
         </ScrollView>
@@ -178,10 +200,15 @@ export default function ProductDetailsScreen({ route, navigation }) {
               {quantityOptions.map((q) => (
                 <TouchableOpacity
                   key={q.label}
-                  style={[styles.qtyBtn, { marginHorizontal: 4, backgroundColor: selectedQty.label === q.label ? "#16a34a" : "#fff" }]}
+                  style={[
+                    styles.qtyBtn,
+                    { backgroundColor: selectedQty?.label === q.label ? "#16a34a" : "#fff" }
+                  ]}
                   onPress={() => setSelectedQty(q)}
                 >
-                  <Text style={{ color: selectedQty.label === q.label ? "#fff" : "#374151", fontWeight: "bold" }}>{q.label}</Text>
+                  <Text style={{ color: selectedQty?.label === q.label ? "#fff" : "#374151", fontWeight: "bold" }}>
+                    {q.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -197,8 +224,6 @@ export default function ProductDetailsScreen({ route, navigation }) {
           </View>
         </View>
       </View>
-
-      {/* 5. Bottom Safe Area Black */}
       <SafeAreaView style={{ backgroundColor: "#000" }} edges={["bottom"]} />
     </View>
   );
@@ -231,10 +256,25 @@ const styles = StyleSheet.create({
   gridBox: { width: '48%', backgroundColor: '#f0fdf4', padding: 12, borderRadius: 18, borderWidth: 1, borderColor: '#dcfce7' },
   gridLabel: { fontSize: 10, color: '#16a34a', textTransform: 'uppercase', opacity: 0.7 },
   gridValue: { fontWeight: 'bold', color: '#1f2937', marginTop: 2, fontSize: 14 },
-  dealRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dealIcon: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  dealTitle: { fontWeight: 'bold', color: '#374151', fontSize: 18 },
-  dealSub: { fontSize: 12, color: '#6b7280' },
+
+  // ✅ NEW: Deals for You Styling
+  dealsCard: { 
+    backgroundColor: '#fffbeb', // Light yellow background
+    borderRadius: 20, 
+    padding: 20, 
+    marginTop: 15, 
+    elevation: 5 
+  },
+  dealsTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937', marginBottom: 15 },
+  dealContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  dealIconContainer: { 
+    backgroundColor: '#f59e0b', 
+    padding: 10, 
+    borderRadius: 12 
+  },
+  dealPercentText: { fontSize: 18, fontWeight: 'bold', color: '#1e3a8a' }, // Dark blue text
+  dealSubText: { color: '#6b7280', fontSize: 13 },
+
   bottomFloatingContainer: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' },
   toastContainer: { marginBottom: 12, width: width * 0.85 },
   toastGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 12, borderRadius: 18 },

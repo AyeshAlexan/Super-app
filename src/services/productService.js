@@ -19,6 +19,11 @@ export const productService = {
     return API.get(`/products/${id}`);
   },
 
+  // ✅ ADD THIS FUNCTION (DO NOT REMOVE OTHERS)
+  getHomeProducts: () => {
+    return API.get('/getHomeProducts');
+  },
+
   // Search products
   searchProducts: (query) => {
     return API.get(`/products/search?q=${query}`);
