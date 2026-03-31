@@ -7,6 +7,7 @@ import {
   StatusBar,
   Dimensions,
   Modal,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -33,15 +34,9 @@ const LoginScreen = ({ navigation, setUserToken }) => {
   const lottieRef = useRef(null);
 
   const showStatus = (type, title, message) => {
-    // ✅ Keep the Log: This ensures you see the status in your terminal/debugger
-    if (type === "error") {
-      console.error(`[LOGIN ERROR]: ${title} - ${message}`);
-    } else {
-      console.log(`[LOGIN SUCCESS]: ${message}`);
-    }
-
     setModalConfig({ visible: true, type, title, message });
     
+    // Only auto-hide if it's an error. Success is handled in the handleLogin flow.
     if (type === "error") {
       setTimeout(() => {
         setModalConfig(prev => ({ ...prev, visible: false }));
@@ -50,8 +45,6 @@ const LoginScreen = ({ navigation, setUserToken }) => {
   };
 
   const handleLogin = async () => {
-    console.log("--- Login Attempt Started ---"); // Log start of process
-
     if (email.trim() === "" || password.trim() === "") {
       showStatus("error", "Missing Fields", "Please enter both email and password.");
       return;
@@ -59,35 +52,47 @@ const LoginScreen = ({ navigation, setUserToken }) => {
 
     try {
       const res = await loginUser({ email, password });
-      
-      // ✅ Log the raw response data for debugging
-      console.log("API Response Data:", res.data);
-
       const token = res.data.token;
+
+      // 1. Show Success Modal First
       showStatus("success", "Login Successful!", "Welcome back to Greenova.");
 
+      // 2. Wait 1.2 seconds so user sees the message
       setTimeout(() => {
-        setShowAnimationOverlay(true);
-        setTimeout(() => setModalConfig(prev => ({ ...prev, visible: false })), 100);
+        setModalConfig(prev => ({ ...prev, visible: false }));
+        setShowAnimationOverlay(true); // Switch to Green Animation
 
+        // 3. Final small delay to prevent the "White Flash"
+        // This ensures the green overlay is fully rendered before the screen switch
         setTimeout(() => {
           if (setUserToken) setUserToken(token);
-        }, 2500);
-      }, 2000);
+        }, 800);
+      }, 1200);
       
     } catch (error) {
-      // ✅ Log the full error object to the console
       const errorMsg = error.response?.data?.message || "Invalid email or password";
-      console.error("Full Login Error Context:", error.response?.data || error.message);
-      
       showStatus("error", "Login Failed", errorMsg);
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={{ height: StatusBar.currentHeight || 40, backgroundColor: "#16a34a" }} />
       <StatusBar barStyle="light-content" backgroundColor="#16a34a" translucent />
+      <View style={{ height: StatusBar.currentHeight || 40, backgroundColor: "#16a34a" }} />
+
+      {/* --- Seamless Loading Overlay --- */}
+      {showAnimationOverlay && (
+        <View style={styles.animationOverlay}>
+          <LottieView
+            ref={lottieRef}
+            source={require("../../assets/Images-1/Loading screen.json")}
+            autoPlay
+            loop
+            style={{ width: width * 0.95, height: width * 0.95 }}
+          />
+          <Text style={styles.loadingText}>Verifying Account...</Text>
+        </View>
+      )}
 
       <View style={styles.mainContent}>
         <LinearGradient colors={["#16a34a", "#22c55e"]} style={styles.headerSection}>
@@ -134,8 +139,12 @@ const LoginScreen = ({ navigation, setUserToken }) => {
             </View>
 
             <View style={styles.socialRow}>
+              {/* ✅ UPDATED GOOGLE LOGO */}
               <TouchableOpacity style={styles.socialBtn}>
-                <MaterialCommunityIcons name="google" size={20} color="#DB4437" />
+                <Image 
+                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_Color_Logo.svg/1200px-Google_Color_Logo.svg.png' }} 
+                  style={{ width: 20, height: 20 }} 
+                />
                 <Text style={styles.socialText}>Google</Text>
               </TouchableOpacity>
 
@@ -178,18 +187,6 @@ const LoginScreen = ({ navigation, setUserToken }) => {
             </View>
           </View>
         </Modal>
-
-        {showAnimationOverlay && (
-          <View style={styles.animationOverlay}>
-            <LottieView
-              ref={lottieRef}
-              source={require("../../assets/Images-1/Loading screen.json")}
-              autoPlay
-              loop={false}
-              style={{ width: width * 0.95, height: width * 0.95 }}
-            />
-          </View>
-        )}
       </View>
 
       <View style={{ height: 20, backgroundColor: "#000000" }} />
@@ -283,10 +280,15 @@ const styles = StyleSheet.create({
   animationOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#16a34a",
-    zIndex: 2000,
+    zIndex: 9999,
     justifyContent: "center",
     alignItems: "center",
-    margin: -1,
+  },
+  loadingText: {
+    marginTop: -20,
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 

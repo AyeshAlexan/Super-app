@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -10,16 +10,16 @@ import {
   FlatList,
   ImageBackground,
   StatusBar,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import LottieView from "lottie-react-native";
 import LiquidBottomNav from "../componets/common/BottomNav";
 import { useCart } from "../context/CartContext";
 import { getHomeProducts } from "../services/HomeServiceApi";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 const quantityOptions = [
   { label: "250g", value: 0.25 },
@@ -42,6 +42,7 @@ const fallbackCategories = [
 ];
 
 export default function HomeScreen({ navigation }) {
+  const lottieRef = useRef(null);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const [selectedPill, setSelectedPill] = useState("Flash Sales");
   const [selectedQty, setSelectedQty] = useState({});
@@ -53,7 +54,9 @@ export default function HomeScreen({ navigation }) {
     popular: [],
     new: [],
   });
+  
   const [loading, setLoading] = useState(true);
+  const [showAnimationOverlay, setShowAnimationOverlay] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const { addToCart } = useCart();
@@ -77,7 +80,11 @@ export default function HomeScreen({ navigation }) {
     } catch (error) {
       console.error("Error fetching home products:", error);
     } finally {
-      setLoading(false);
+      // Increased timeout slightly to ensure background content is 100% rendered
+      setTimeout(() => {
+        setLoading(false);
+        setShowAnimationOverlay(false);
+      }, 2000);
       setRefreshing(false);
     }
   };
@@ -114,8 +121,6 @@ export default function HomeScreen({ navigation }) {
 
   const renderFlashItem = ({ item }) => {
     const currentQtySelection = selectedQty[item.id] || quantityOptions[2]; 
-    
-    // Logic aligned with ProductDetailsScreen.js
     const discountPercent = item.discount_percent || 0;
     const hasDeal = discountPercent > 0;
     const originalPrice = (item.price || 0) * currentQtySelection.value;
@@ -130,19 +135,11 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.discountText}>{discountPercent}% OFF</Text>
           </View>
         )}
-
-        <TouchableOpacity 
-          onPress={() => navigation.navigate("ProductDetails", { product: item })}
-          activeOpacity={0.9}
-        >
+        <TouchableOpacity onPress={() => navigation.navigate("ProductDetails", { product: item })} activeOpacity={0.9}>
           <Image source={resolveImage(item.image)} style={styles.flashItemImage} />
           <View style={styles.flashItemInfo}>
-            {/* 1. FIXED: Show the actual category name if it exists in the item object */}
-            <Text style={styles.itemCategoryText}>
-              {item.category?.name || "Fresh Produce"}
-            </Text>
+            <Text style={styles.itemCategoryText}>{item.category?.name || "Fresh Produce"}</Text>
             <Text style={styles.flashItemName} numberOfLines={1}>{item.name}</Text>
-            
             <View style={styles.ratingRow}>
               <Icon name="star" size={12} color="#facc15" />
               <Text style={styles.ratingText}>{item.rating || '5.0'}</Text>
@@ -155,42 +152,19 @@ export default function HomeScreen({ navigation }) {
             {quantityOptions.map((q) => (
               <TouchableOpacity
                 key={q.label}
-                style={[
-                  styles.qtyOption,
-                  currentQtySelection.label === q.label && styles.qtyActive
-                ]}
+                style={[styles.qtyOption, currentQtySelection.label === q.label && styles.qtyActive]}
                 onPress={() => setSelectedQty(prev => ({ ...prev, [item.id]: q }))}
               >
-                <Text style={[styles.qtyLabel, currentQtySelection.label === q.label && styles.qtyLabelActive]}>
-                  {q.label}
-                </Text>
+                <Text style={[styles.qtyLabel, currentQtySelection.label === q.label && styles.qtyLabelActive]}>{q.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-
           <View style={styles.cartRow}>
             <View>
-                {/* 2. FIXED: Price rounding matches Details screen */}
-                <Text style={styles.currentPrice}>
-                    Rs.{finalPrice % 1 === 0 ? finalPrice.toFixed(0) : finalPrice.toFixed(2)}
-                </Text>
-                {hasDeal && (
-                    <Text style={styles.homeOldPrice}>Rs.{originalPrice.toFixed(0)}</Text>
-                )}
+              <Text style={styles.currentPrice}>Rs.{finalPrice % 1 === 0 ? finalPrice.toFixed(0) : finalPrice.toFixed(2)}</Text>
+              {hasDeal && <Text style={styles.homeOldPrice}>Rs.{originalPrice.toFixed(0)}</Text>}
             </View>
-            <TouchableOpacity
-              style={styles.addCartBtn}
-              onPress={() =>
-                addToCart({
-                  id: item.id,
-                  name: item.name,
-                  price: finalPrice,
-                  image: item.image,
-                  unit: currentQtySelection.label,
-                  quantity: 1,
-                })
-              }
-            >
+            <TouchableOpacity style={styles.addCartBtn} onPress={() => addToCart({ id: item.id, name: item.name, price: finalPrice, image: item.image, unit: currentQtySelection.label, quantity: 1 })}>
               <Icon name="cart-plus" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -199,134 +173,132 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#16a34a" />
-      </View>
-    );
-  }
-
   return (
-    <View style={{ flex: 1 }}>
-      <SafeAreaView style={{ backgroundColor: "#16a34a" }} edges={["top"]}>
-        <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
-      </SafeAreaView>
+    <View style={styles.mainWrapper}>
+      {/* 1. FIXED: Set StatusBar to green globally during load */}
+      <StatusBar barStyle="light-content" backgroundColor="#16a34a" />
 
-      <View style={{ flex: 1, backgroundColor: "#fff" }}>
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#16a34a"]} />
-          }
-        >
-          {/* HEADER */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.iconBtn}><Icon name="account-outline" size={26} color="#fff" /></TouchableOpacity>
-            <View style={styles.logoWrapper}>
-              <Image source={require("../../assets/Images-1/logo.png")} style={styles.logo} />
-            </View>
-            <TouchableOpacity style={styles.iconBtn}>
-              <View style={styles.notiBadge} />
-              <Icon name="bell-outline" size={26} color="#fff" />
-            </TouchableOpacity>
-          </View>
+      {/* 2. FIXED: Animation Overlay is now a layer, not a conditional return */}
+      {showAnimationOverlay && (
+        <View style={styles.animationOverlay}>
+          <LottieView
+            ref={lottieRef}
+            source={require("../../assets/Images-1/Loading screen.json")}
+            autoPlay
+            loop={true}
+            style={{ width: width * 0.95, height: width * 0.95 }}
+          />
+          <Text style={styles.loadingText}>Loading Freshness...</Text>
+        </View>
+      )}
 
-          {/* HERO CAROUSEL */}
-          <View style={styles.carouselContainer}>
-            <FlatList
-              data={homeProducts.heroDeals}
-              renderItem={renderHeroItem}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-              onScroll={(e) => {
-                const x = e.nativeEvent.contentOffset.x;
-                setActiveHeroIndex(Math.round(x / width));
-              }}
-            />
-            <View style={styles.pagination}>
-              {homeProducts.heroDeals.map((_, index) => (
-                <View key={index} style={[styles.dot, activeHeroIndex === index ? styles.activeDot : styles.inactiveDot]} />
-              ))}
-            </View>
-          </View>
-
-          {/* CATEGORIES GRID */}
-          <View style={styles.categorySection}>
-            <View style={styles.catHeader}>
-              <Text style={styles.catTitle}>Categories</Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Categories")}>
-                <Text style={styles.seeAll}>See all</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.grid}>
-              {homeProducts.categories.map((item, index) => (
-                <TouchableOpacity 
-                  key={index} 
-                  style={styles.cardFrame}
-                  onPress={() => navigation.navigate("Categories", { selectedCat: item.name })}
-                >
-                  <ImageBackground source={resolveImage(item.image)} style={styles.cardImageBack} imageStyle={{ borderRadius: 18 }}>
-                    <View style={styles.overlay}>
-                      <Text style={styles.catName}>{item.name}</Text>
-                    </View>
-                  </ImageBackground>
+      {/* 3. Main Content Container */}
+      {!loading && (
+        <View style={{ flex: 1 }}>
+          <SafeAreaView style={{ backgroundColor: "#16a34a" }} edges={["top"]} />
+          <View style={{ flex: 1, backgroundColor: "#fff" }}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#16a34a"]} />}
+            >
+              {/* HEADER */}
+              <View style={styles.header}>
+                <TouchableOpacity style={styles.iconBtn}><Icon name="account-outline" size={26} color="#fff" /></TouchableOpacity>
+                <View style={styles.logoWrapper}>
+                  <Image source={require("../../assets/Images-1/logo.png")} style={styles.logo} />
+                </View>
+                <TouchableOpacity style={styles.iconBtn}>
+                  <View style={styles.notiBadge} />
+                  <Icon name="bell-outline" size={26} color="#fff" />
                 </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+              </View>
 
-          {/* DYNAMIC PRODUCT SECTION */}
-          <View style={styles.flashSection}>
-            <Text style={[styles.catTitle, { marginBottom: 15 }]}>Amazing Products</Text>
+              {/* HERO CAROUSEL */}
+              <View style={styles.carouselContainer}>
+                <FlatList
+                  data={homeProducts.heroDeals}
+                  renderItem={renderHeroItem}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+                  onScroll={(e) => setActiveHeroIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+                />
+                <View style={styles.pagination}>
+                  {homeProducts.heroDeals.map((_, index) => (
+                    <View key={index} style={[styles.dot, activeHeroIndex === index ? styles.activeDot : styles.inactiveDot]} />
+                  ))}
+                </View>
+              </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 15 }}>
-              {navPills.map((pill) => (
-                <TouchableOpacity 
-                  key={pill} 
-                  onPress={() => setSelectedPill(pill)}
-                  style={[styles.navPill, selectedPill === pill && styles.activePill]}
-                >
-                  {pill === "Flash Sales" && (
-                    <Icon name="flash" size={16} color={selectedPill === pill ? "#fff" : "#ff5722"} style={{marginRight: 4}} />
-                  )}
-                  <Text style={[styles.pillText, selectedPill === pill && styles.activePillText]}>{pill}</Text>
-                </TouchableOpacity>
-              ))}
+              {/* CATEGORIES GRID */}
+              <View style={styles.categorySection}>
+                <View style={styles.catHeader}>
+                  <Text style={styles.catTitle}>Categories</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate("Categories")}><Text style={styles.seeAll}>See all</Text></TouchableOpacity>
+                </View>
+                <View style={styles.grid}>
+                  {homeProducts.categories.map((item, index) => (
+                    <TouchableOpacity key={index} style={styles.cardFrame} onPress={() => navigation.navigate("Categories", { selectedCat: item.name })}>
+                      <ImageBackground source={resolveImage(item.image)} style={styles.cardImageBack} imageStyle={{ borderRadius: 18 }}>
+                        <View style={styles.overlay}><Text style={styles.catName}>{item.name}</Text></View>
+                      </ImageBackground>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* PRODUCT SECTION */}
+              <View style={styles.flashSection}>
+                <Text style={[styles.catTitle, { marginBottom: 15 }]}>Amazing Products</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 15 }}>
+                  {navPills.map((pill) => (
+                    <TouchableOpacity key={pill} onPress={() => setSelectedPill(pill)} style={[styles.navPill, selectedPill === pill && styles.activePill]}>
+                      {pill === "Flash Sales" && <Icon name="flash" size={16} color={selectedPill === pill ? "#fff" : "#ff5722"} style={{marginRight: 4}} />}
+                      <Text style={[styles.pillText, selectedPill === pill && styles.activePillText]}>{pill}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <FlatList
+                  data={selectedPill === "Flash Sales" ? homeProducts.flashSales : selectedPill === "For You" ? homeProducts.forYou : selectedPill === "Popular" ? homeProducts.popular : homeProducts.new}
+                  renderItem={renderFlashItem}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+                  contentContainerStyle={{ paddingBottom: 20, paddingLeft: 5 }}
+                  ListEmptyComponent={<Text style={{marginLeft: 15, color: '#999'}}>No products available.</Text>}
+                />
+              </View>
+              <View style={{ height: 120 }} />
             </ScrollView>
-
-            <FlatList
-              data={
-                selectedPill === "Flash Sales" ? homeProducts.flashSales :
-                selectedPill === "For You" ? homeProducts.forYou :
-                selectedPill === "Popular" ? homeProducts.popular :
-                homeProducts.new
-              }
-              renderItem={renderFlashItem}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item, index) => item.id?.toString() || index.toString()}
-              contentContainerStyle={{ paddingBottom: 20, paddingLeft: 5 }}
-              ListEmptyComponent={<Text style={{marginLeft: 15, color: '#999'}}>No products available.</Text>}
-            />
+            <LiquidBottomNav />
           </View>
-
-          <View style={{ height: 120 }} />
-        </ScrollView>
-
-        <LiquidBottomNav />
-      </View>
-
-      <SafeAreaView style={{ backgroundColor: "#000" }} edges={["bottom"]} />
+          <SafeAreaView style={{ backgroundColor: "#000" }} edges={["bottom"]} />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  // FIXED: Wrapper is green to prevent white flash
+  mainWrapper: { 
+    flex: 1, 
+    backgroundColor: "#16a34a" 
+  },
+  animationOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#16a34a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  loadingText: {
+    marginTop: -20,
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#16a34a", height: 100, paddingHorizontal: 20, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
   logoWrapper: { flex: 1, alignItems: "center" },
   logo: { width: 240, height: 100, resizeMode: "contain" },
