@@ -15,24 +15,18 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from 'expo-linear-gradient';
 import LiquidBottomNav from "../componets/common/BottomNav";
 import { useCart } from "../context/CartContext";
-// ✅ STEP 1: Import Address Context
-import { useAddress } from "../context/AddressContext";
 
 const { width } = Dimensions.get("window");
 
 export default function CartScreen({ navigation }) {
+  // We get these functions from our Context, which handles the DB sync
   const { cartItems, removeFromCart, updateQuantity } = useCart();
   const insets = useSafeAreaInsets();
   
-  // ✅ STEP 2: Get Default Address Logic
-  const { getDefaultAddress } = useAddress();
-  const defaultAddress = getDefaultAddress();
-
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const deliveryFee = cartItems.length > 0 ? 50.00 : 0;
   const total = subtotal + deliveryFee;
 
-  // ✅ HANDLER: Navigate to Checkout
   const handleProceedToCheckout = () => {
     if (cartItems.length > 0) {
       navigation.navigate("Checkout");
@@ -70,56 +64,55 @@ export default function CartScreen({ navigation }) {
 
         {/* CART ITEMS */}
         <View style={styles.itemsList}>
-          {cartItems.length > 0 ? cartItems.map((item) => (
-            <View key={`${item.id}-${item.unit}`} style={styles.cartCard}>
-              
-              <Image source={{ uri: item.image }} style={styles.itemImage} />
+          {cartItems.length > 0 ? cartItems.map((item, index) => (
+  <View key={`${item.id}-${item.unit}-${index}`} style={styles.cartCard}>
+    
+    <Image source={{ uri: item.image }} style={styles.itemImage} />
 
-              <View style={styles.itemDetails}>
+    <View style={styles.itemDetails}>
 
-                {/* NAME + DELETE */}
-                <View style={styles.itemHeader}>
-                  <Text style={styles.itemName}>{item.name}</Text>
+      <View style={styles.itemHeader}>
+        <Text style={styles.itemName}>{item.name}</Text>
 
-                  <TouchableOpacity onPress={() => removeFromCart(item.id, item.unit)}>
-                    <Icon name="trash-can-outline" size={22} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
+        <TouchableOpacity onPress={() => removeFromCart(item.id, item.unit)}>
+          <Icon name="trash-can-outline" size={22} color="#ef4444" />
+        </TouchableOpacity>
+      </View>
 
-                {/* UNIT */}
-                <View style={styles.unitBadge}>
-                  <Text style={styles.unitText}>{item.unit}</Text>
-                </View>
+      {/* ✅ FIXED: show quantity + unit */}
+      <View style={styles.unitBadge}>
+        <Text style={styles.unitText}>
+          {item.quantity} {item.unit}
+        </Text>
+      </View>
 
-                {/* PRICE + QTY */}
-                <View style={styles.priceRow}>
-                  
-                  <Text style={styles.itemPrice}>
-                    Rs.{(item.price * item.quantity).toFixed(2)}
-                  </Text>
+      <View style={styles.priceRow}>
+        <Text style={styles.itemPrice}>
+          Rs.{(item.price * item.quantity).toFixed(2)}
+        </Text>
 
-                  <View style={styles.quantityControls}>
-                    <TouchableOpacity 
-                      onPress={() => updateQuantity(item.id, item.unit, -1)} 
-                      style={styles.qtyBtn}
-                    >
-                      <Icon name="minus" size={16} color="#6b7280" />
-                    </TouchableOpacity>
+        <View style={styles.quantityControls}>
+          <TouchableOpacity 
+            onPress={() => updateQuantity(item.id, item.unit, -1)} 
+            style={styles.qtyBtn}
+          >
+            <Icon name="minus" size={16} color="#6b7280" />
+          </TouchableOpacity>
 
-                    <Text style={styles.qtyText}>{item.quantity}</Text>
+          <Text style={styles.qtyText}>{item.quantity}</Text>
 
-                    <TouchableOpacity 
-                      onPress={() => updateQuantity(item.id, item.unit, 1)} 
-                      style={styles.qtyBtnActive}
-                    >
-                      <Icon name="plus" size={16} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
+          <TouchableOpacity 
+            onPress={() => updateQuantity(item.id, item.unit, 1)} 
+            style={styles.qtyBtnActive}
+          >
+            <Icon name="plus" size={16} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
 
-              </View>
-            </View>
-          )) : (
+    </View>
+  </View>
+)) : (
             <View style={styles.emptyContainer}>
                <Icon name="cart-off" size={60} color="#D1D5DB" />
                <Text style={styles.emptyText}>Your cart is empty</Text>
@@ -144,28 +137,6 @@ export default function CartScreen({ navigation }) {
               <Text style={styles.applyBtnText}>Apply</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* ADDRESS */}
-        <View style={styles.addressCard}>
-            <View style={styles.addressRow}>
-                <View style={styles.addressIconBox}>
-                  <Icon name="map-marker" size={22} color="#16a34a" />
-                </View>
-                <View style={{flex: 1, marginLeft: 12}}>
-                    <Text style={styles.addressLabel}>Delivery Address</Text>
-                    <Text style={styles.addressText} numberOfLines={1}>
-                      {defaultAddress
-                        ? `${defaultAddress.street}, ${defaultAddress.city}`
-                        : "No address selected"}
-                    </Text>
-                </View>
-                <TouchableOpacity 
-                  onPress={() => navigation.navigate("Addresses", { fromCart: true })}
-                >
-                  <Text style={styles.changeText}>Change</Text>
-                </TouchableOpacity>
-            </View>
         </View>
 
         {/* SUMMARY */}
@@ -267,13 +238,7 @@ const styles = StyleSheet.create({
   promoInput: { flex: 1, backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 12, height: 45, borderWidth: 1, borderColor: '#e5e7eb' },
   applyBtn: { backgroundColor: '#f97316', paddingHorizontal: 20, borderRadius: 10, justifyContent: 'center' },
   applyBtnText: { color: '#fff', fontWeight: 'bold' },
-  addressCard: { backgroundColor: '#fff', marginTop: 15, borderRadius: 15, padding: 15 },
-  addressRow: { flexDirection: 'row', alignItems: 'center' },
-  addressIconBox: { backgroundColor: '#f0fdf4', padding: 8, borderRadius: 10 },
-  addressLabel: { fontWeight: 'bold', fontSize: 14, color: '#1f2937' },
-  addressText: { fontSize: 12, color: '#6b7280' },
-  changeText: { color: '#16a34a', fontWeight: 'bold' },
-  summaryCard: { backgroundColor: '#fff', marginTop: 15, borderRadius: 25, padding: 20 },
+  summaryCard: { backgroundColor: '#fff', marginTop: 15, borderRadius: 25, padding: 20, marginBottom: 20 },
   summaryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   summaryLabel: { color: '#6b7280' },

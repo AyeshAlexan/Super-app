@@ -173,10 +173,10 @@ export default function AddressScreen({ navigation, route }) {
 
             <TextInput placeholder="Label (Home, Office)" style={styles.input} value={formData.label} onChangeText={(t) => setFormData({...formData, label: t})} />
             <TextInput placeholder="Street Address" style={styles.input} value={formData.street} onChangeText={(t) => setFormData({...formData, street: t})} />
-            <div style={{flexDirection: 'row', gap: 10}}>
+            <View style={{flexDirection: 'row', gap: 10}}>
               <TextInput placeholder="City" style={[styles.input, {flex: 1}]} value={formData.city} onChangeText={(t) => setFormData({...formData, city: t})} />
               <TextInput placeholder="State" style={[styles.input, {flex: 1}]} value={formData.state} onChangeText={(t) => setFormData({...formData, state: t})} />
-            </div>
+            </View>
             <TextInput placeholder="Phone Number" style={styles.input} value={formData.phone} keyboardType="phone-pad" onChangeText={(t) => setFormData({...formData, phone: t})} />
 
             <View style={styles.modalActions}>

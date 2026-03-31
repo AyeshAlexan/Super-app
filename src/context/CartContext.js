@@ -1,90 +1,145 @@
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, { createContext, useContext, useState, useMemo, useEffect } from "react";
+import { fetchCart, addToCartApi, updateCartApi, removeFromCartApi } from "../services/cartService";  
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // ✅ Total item count (badge)
-  const cartCount = useMemo(() => {
-    return cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
-  }, [cartItems]);
+  // Sync cart when the component mounts
+  useEffect(() => {
+    syncCart();
+  }, []);
 
-  // ✅ Total price
-  const getCartTotal = () => {
-    return cartItems.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-  };
+  const syncCart = async () => {
+  const token = await AsyncStorage.getItem("userToken");
+  if (!token) return;
 
-  // ✅ Add to cart (id + unit safe)
-  const addToCart = (product) => {
-    if (!product) return;
+  try {
+    setLoading(true);
+    const res = await fetchCart();
 
-    setCartItems((prev) => {
-      const existing = prev.find(
-        (item) => item.id === product.id && item.unit === product.unit
-      );
+    const items = res.items || res.data?.items || [];
 
+    // ✅ MERGE DUPLICATES (IMPORTANT FIX)
+    const merged = {};
+
+    items.forEach(item => {
+      const key = `${item.product_id || item.id}-${item.unit}`;
+
+      if (merged[key]) {
+        merged[key].quantity += parseFloat(item.quantity);
+      } else {
+        merged[key] = {
+          ...item,
+          id: item.product_id || item.id,
+          image: item.image_url || item.image,
+          price: parseFloat(item.price),
+          quantity: parseFloat(item.quantity)
+        };
+      }
+    });
+
+    setCartItems(Object.values(merged));
+
+  } catch (err) {
+    console.log("Sync Error:", err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+  const cartCount = useMemo(() =>
+    cartItems.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0),
+  [cartItems]);
+
+  const addToCart = async (product) => {
+    // ✅ Optimistic UI
+    setCartItems(prev => {
+      const existing = prev.find(i => i.id === product.id && i.unit === product.unit);
       if (existing) {
-        return prev.map((item) =>
-          item.id === product.id && item.unit === product.unit
-            ? { ...item, quantity: item.quantity + (product.quantity || 1) }
-            : item
+        return prev.map(i =>
+          i.id === product.id && i.unit === product.unit
+            ? { ...i, quantity: parseFloat(i.quantity) + 1 }
+            : i
         );
       }
-
-      return [...prev, { ...product, quantity: product.quantity || 1 }];
+      return [...prev, { ...product, quantity: 1 }];
     });
+
+    try {
+      const payload = {
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        unit: product.unit || "kg",
+        image: product.image
+      };
+
+      await addToCartApi(payload);
+    } catch (e) {
+      console.error("Add to Cart Failed:", e.response?.data || e.message);
+      syncCart();
+    }
   };
 
-  // ✅ Remove item (id + unit FIXED)
-  const removeFromCart = (id, unit) => {
-    setCartItems((prev) =>
-      prev.filter((item) => !(item.id === id && item.unit === unit))
+  const updateQuantity = async (id, unit, change) => {
+    // ✅ Optimistic UI
+    setCartItems(prev =>
+      prev.map(i =>
+        (i.id === id && i.unit === unit)
+          ? { ...i, quantity: parseFloat(i.quantity) + change }
+          : i
+      ).filter(i => i.quantity > 0)
     );
+
+    try {
+      await updateCartApi({
+        id,
+        unit,
+        change
+      });
+    } catch (e) {
+      console.error("Update Quantity Failed:", e.response?.data || e.message);
+      syncCart();
+    }
   };
 
-  // ✅ Update quantity FIXED (id + unit)
-  const updateQuantity = (id, unit, change) => {
-    setCartItems((prev) =>
-      prev
-        .map((item) => {
-          if (item.id === id && item.unit === unit) {
-            const newQty = item.quantity + change;
-            if (newQty <= 0) return null;
-            return { ...item, quantity: newQty };
-          }
-          return item;
-        })
-        .filter(Boolean)
+  // ✅ FIXED REMOVE (REAL DELETE FROM DB)
+  const removeFromCart = async (id, unit) => {
+    // 1. Optimistic UI
+    setCartItems(prev =>
+      prev.filter(i => !(i.id === id && i.unit === unit))
     );
-  };
 
-  const clearCart = () => setCartItems([]);
+    try {
+      // 2. DELETE from backend
+      await removeFromCartApi(id, unit);
+
+      // 🔄 Optional (recommended for accuracy)
+      // await syncCart();
+
+    } catch (e) {
+      console.error("Remove Failed:", e.response?.data || e.message);
+      syncCart(); // rollback if error
+    }
+  };
 
   return (
-    <CartContext.Provider
-      value={{
-        cartItems,
-        cartCount,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        getCartTotal,
-      }}
-    >
+    <CartContext.Provider value={{
+      cartItems,
+      cartCount,
+      loading,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      syncCart
+    }}>
       {children}
     </CartContext.Provider>
   );
 };
 
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within a CartProvider");
-  }
-  return context;
-};
+export const useCart = () => useContext(CartContext);

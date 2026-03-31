@@ -14,6 +14,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import LottieView from "lottie-react-native";
 import CustomInput from "../componets/common/CustomeInput";
 
+// ✅ IMPORT ASYNC STORAGE
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 // ✅ IMPORT API SERVICE
 import { loginUser } from "../services/authService";
 
@@ -54,13 +57,18 @@ const LoginScreen = ({ navigation, setUserToken }) => {
       const res = await loginUser({ email, password });
       const token = res.data.token;
 
+      // 🔥 FIX: SAVE THE TOKEN TO STORAGE HERE
+      // This ensures your Cart service can find the token later
+      await AsyncStorage.setItem("userToken", token);
+      console.log("Token saved successfully:", token);
+
       // 1. Show Success Modal First
       showStatus("success", "Login Successful!", "Welcome back to Greenova.");
 
       // 2. Wait 1.2 seconds so user sees the message
       setTimeout(() => {
         setModalConfig(prev => ({ ...prev, visible: false }));
-        setShowAnimationOverlay(true); // Switch to Green Animation
+        setShowAnimationOverlay(true); // Switch to Green Animation Overlay
 
         // 3. Final small delay to prevent the "White Flash"
         // This ensures the green overlay is fully rendered before the screen switch
