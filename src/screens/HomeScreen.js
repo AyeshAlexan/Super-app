@@ -34,6 +34,7 @@ const fallbackHeroDeals = [
   { id: 'h3', title: "Dairy Deals", sub: "Flat 20% OFF", image: require("../../assets/Images-1/hero3.png") }
 ];
 
+
 const fallbackCategories = [
   { name: "Fresh Vegetables", image: require("../../assets/Images-1/veg.avif") },
   { name: "Organic Fruits", image: require("../../assets/Images-1/fruits.avif") },
