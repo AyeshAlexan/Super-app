@@ -6,7 +6,7 @@ import SuccessScreen from "../screens/SuccessScreen";
 import AuthNavigator from "./AuthNavigator";
 import BottomTabNavigator from "./BottomTabNavigator";
 
-// Import your existing screens
+// Import your existing screens 
 import OrdersScreen from "../screens/ordersScreen";
 import FavoritesScreen from "../screens/favoritesScreen";
 import AddressesScreen from "../screens/addressScreen";
