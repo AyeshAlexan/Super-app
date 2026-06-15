@@ -29,6 +29,7 @@ const AppNavigator = () => {
 
   if (isLoading) return <LoadingScreen />;
 
+  
   return (
     <Stack.Navigator 
       screenOptions={{ 
